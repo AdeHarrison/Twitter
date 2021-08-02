@@ -11,15 +11,10 @@ select count(*) from friend f2;
 -- Who I follow and follows me
 select count(*) from follower f inner join friend f2 on f.twitter_id = f2.twitter_id;
 
-create table new_table
-as 
-select f.twitter_id 
-from follower f
-   join friend f2 on f.twitter_id = f2.twitter_id ;
-  
-  
-
-SELECT ISNULL(f.twitter_id,f2.twitter_id) 
+SELECT * 
 FROM follower f
-LEFT JOIN friend f2 ON f.twitter_id = f2.twitter_id 
-WHERE f.twitter_id  <> f2.twitter_id; 
+where f.twitter_id not in (select twitter_id  from friend f2);
+
+SELECT * 
+FROM friend f2
+where f2.twitter_id not in (select twitter_id  from follower f);
