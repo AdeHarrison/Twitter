@@ -51,7 +51,7 @@ public class FollowerService {
         return allFollowing;
     }
 
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException {
 //        String userId = System.getenv("USER_ID");
 //        String token = System.getenv("BEARER_TOKEN");
 //
