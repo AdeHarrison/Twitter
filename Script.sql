@@ -1,9 +1,11 @@
 -- ONLY run once to create ignore_users table
 -- Create ALL ignore_users table than are not following me but I want to still follow
 DROP TABLE IF EXISTS ignore_users CASCADE;
+
 CREATE TABLE ignore_users AS
 SELECT
-	*
+	fr.twitter_id,
+	fr.name
 FROM
 	friend fr
 WHERE
@@ -49,7 +51,8 @@ DROP TABLE IF EXISTS following_and_not_follow_me CASCADE;
 
 CREATE TABLE following_and_not_follow_me AS 
 SELECT
-	*
+	fr.twitter_id,
+	fr.name
 FROM
 	friend fr
 WHERE
@@ -58,14 +61,13 @@ WHERE
 		fo.twitter_id
 	FROM
 		follower fo);
-
 -- Create table of all users to unfollow
 DROP TABLE IF EXISTS users_to_unfollow CASCADE;
 
 CREATE TABLE users_to_unfollow AS 
 SELECT
 	fanfm.twitter_id,
-	fanfm."name"
+	fanfm.name
 FROM
 	following_and_not_follow_me fanfm
 WHERE
