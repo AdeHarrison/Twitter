@@ -2,8 +2,10 @@ package com.ccsltd.twitter.service;
 
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
+import com.ccsltd.twitter.entity.UnFollower;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.UnFollowerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import twitter4j.*;
@@ -19,20 +21,28 @@ import java.util.List;
 public class FollowerService {
 
     private final FollowerRepository followerRepository;
+    private final UnFollowerRepository unFollowerRepository;
     private final FriendRepository friendRepository;
 
     public List<Follower> getFollowers() {
         List<Follower> allFollowers = getAllFollowers();
 
-        for (Follower follower : allFollowers) {
-            try {
-                followerRepository.save(follower);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
+//        for (Follower follower : allFollowers) {
+//            try {
+//                followerRepository.save(follower);
+//            } catch (Exception e) {
+//                System.out.println(e.getMessage());
+//            }
+//        }
+        followerRepository.saveAll(allFollowers);
+
+        try {
+            Thread.sleep(600000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
-        followerRepository.saveAll(allFollowers);
+        getFollowing();
 
         return allFollowers;
     }
@@ -40,26 +50,28 @@ public class FollowerService {
     public List<Friend> getFollowing() {
         List<Friend> allFollowing = getAllFriends();
 
-        for (Friend friend : allFollowing) {
-            try {
-                friendRepository.save(friend);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
-        }
+//        for (Friend friend : allFollowing) {
+//            try {
+//                friendRepository.save(friend);
+//            } catch (Exception e) {
+//                System.out.println(e.getMessage());
+//            }
+//        }
+
+        friendRepository.saveAll(allFollowing);
 
         return allFollowing;
     }
 
-    public static void main(String[] args) throws IOException {
-//        String userId = System.getenv("USER_ID");
-//        String token = System.getenv("BEARER_TOKEN");
-//
-//        String x = getFollowers(userId, token);
-//        FollowerService followerService = new FollowerService();
-//
-//        followerService.getAllFollowers();
-    }
+//    public static void main(String[] args) throws IOException {
+////        String userId = System.getenv("USER_ID");
+////        String token = System.getenv("BEARER_TOKEN");
+////
+////        String x = getFollowers(userId, token);
+////        FollowerService followerService = new FollowerService();
+////
+////        followerService.getAllFollowers();
+//    }
 
     private List<Follower> getAllFollowers() {
         Twitter twitter = new TwitterFactory().getInstance();
@@ -114,6 +126,74 @@ public class FollowerService {
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
         return allUsers;
+    }
+
+    public int unFollowFollowers() {
+        Twitter twitter = new TwitterFactory().getInstance();
+//        PagableResponseList<User> partialUsers = null;
+//        String screenName = "ade_bald";
+//        long nextCursor = -1;
+//        int maxResults = 200;
+//        long sleepMilliSeconds = 60000l;
+        List<Follower> allUsers = new ArrayList<>();
+//        int fakeCount = 0;
+
+        List<UnFollower> unFollowers = unFollowerRepository.findAll();
+        UnFollower unFollower = unFollowers.get(0);
+        try {
+            Relationship relationship = twitter.friendsFollowers().showFriendship("2244994945", Long.toString(unFollower.getTwitterId()));
+            twitter.friendsFollowers().destroyFriendship(unFollower.getTwitterId());
+//            twitter.friendsFollowers().destroyFriendship(unFollower.getName());
+        } catch (TwitterException e) {
+            e.printStackTrace();
+        }
+
+        return unFollowers.size();
+//
+//        followerRepository.deleteAll();
+//        serialiseList(partialUsers, "followers.ser", false);
+//
+//        do {
+//            try {
+//                partialUsers = twitter.getFollowersList(screenName, nextCursor, maxResults);
+//
+//                for (User user : partialUsers) {
+//                    Follower follower = Follower.builder()
+//                            .twitterId(user.getId())
+//                            .name(user.getName())
+//                            .description(user.getDescription())
+//                            .location(user.getLocation())
+//                            .followersCount(user.getFollowersCount())
+//                            .friendsCount(user.getFriendsCount())
+//                            .build();
+//
+//                    allUsers.add(follower);
+//                }
+//
+//                serialiseList(partialUsers, "followers.ser", true);
+//
+//                System.out.println("Total Followers retrieved: " + allUsers.size());
+////                System.out.println(twitter.getRateLimitStatus());
+//
+//                //todo debug
+////                fakeCount++;
+////                if (fakeCount == 2) {
+////                    break;
+////                }
+//
+//            } catch (TwitterException e) {
+//                System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+//
+//                try {
+//                    Thread.sleep(sleepMilliSeconds);
+//                } catch (InterruptedException ex) {
+//                    ex.printStackTrace();
+//                }
+//            }
+//        } while ((nextCursor = partialUsers.getNextCursor()) != 0);
+//
+//        return allUsers;
+//
     }
 
     private List<Friend> getAllFriends() {
