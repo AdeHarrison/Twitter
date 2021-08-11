@@ -34,8 +34,8 @@ delete from ignore_users where name = 'Misteryo';
 delete from ignore_users where name = 'Modou Sanyang';
 delete from ignore_users where name = 'Rwnn kâ€™1 fry ðŸŽ®';
 delete from ignore_users where name = 'Shailendra Kumar Yadav';
-delete from ignore_users where name = 'Shakerite ðŸ?´ó ?§ó ?¢ó ?¥ó ?®ó ?§ó ?¿';
-delete from ignore_users where name = 'TrickyðŸ‡¬ðŸ‡§ðŸ‡®ðŸ‡±ðŸ‡ºðŸ‡²ðŸ?´ó ?§ó ?¢ó ?¥ó ?®ó ?§ó ?¿ ðŸ‡®ðŸ‡³';
+delete from ignore_users where name = 'Shakerite ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½';
+delete from ignore_users where name = 'TrickyðŸ‡¬ðŸ‡§ðŸ‡®ðŸ‡±ðŸ‡ºðŸ‡²ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ ðŸ‡®ðŸ‡³';
 delete from ignore_users where name = 'Tyler Ottoman';
 delete from ignore_users where name = 'UKIP Patriots';
 delete from ignore_users where name = 'VMF';
@@ -44,5 +44,18 @@ delete from ignore_users where name = 'get_reallll';
 delete from ignore_users where name = 'sk sobuj khan';
 delete from ignore_users where name = 'talkRADIO';
 delete from ignore_users where name = 'value-rewards';
+
+delete from ignore_users iu where iu.twitter_id = 1399477145211133954;
+delete from ignore_users iu where iu.twitter_id = 1342160731366633474;
+delete from ignore_users iu where iu.twitter_id = 1413659112223789056;
+delete from ignore_users iu where iu.twitter_id = 1410339389301997568;
+delete from ignore_users iu where iu.twitter_id = 1346516666;
+delete from ignore_users iu where iu.twitter_id = 1250788752005316609;
+delete from ignore_users iu where iu.twitter_id = 1183327276999544837;
+delete from ignore_users iu where iu.twitter_id = 2993223717;
+delete from ignore_users iu where iu.twitter_id = 1086742378571096064;
+delete from ignore_users iu where iu.twitter_id = 4829910760;
+delete from ignore_users iu where iu.twitter_id = 569505170;
+
 -- ONLY run once to here
 
