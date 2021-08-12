@@ -1,7 +1,5 @@
 package com.ccsltd.twitter.service;
 
-import static org.apache.commons.lang3.StringUtils.join;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -46,7 +44,6 @@ public class TwitterService {
 
     public String refreshData() {
         int newFolowerIds = updateFollowers();
-
         int newFriendIds = updateFriends();
 
         return String.format("'%s' Followers added, '%s' Followers added", newFolowerIds, newFriendIds);
@@ -71,12 +68,15 @@ public class TwitterService {
 
                 for (User user : partialUsers) {
                     //@formatter:off
-                    Follower follower = Follower.builder().twitterId(
-                            user.getId()).name(user.getName())
+                    Follower follower = Follower.builder()
+                            .twitterId(user.getId())
+                            .screenName(user.getScreenName())
+                            .name(user.getName())
                             .description(user.getDescription())
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
-                            .friendsCount(user.getFriendsCount()).build();
+                            .friendsCount(user.getFriendsCount())
+                    .build();
                     //@formatter:on
 
                     allUsers.add(follower);
@@ -130,24 +130,92 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        String csv = join(newUsers, ",");
+        if (newUsers.size() > 0) {
+            try {
+                long[] array = new long[newUsers.size()];
+                int i = 0;
+                for (Long newUser : newUsers) {
+                    array[i] = newUsers.get(i);
+                    i++;
+                }
 
-        try {
-            ResponseList<User> usersToAdd = twitter.lookupUsers(538349876);
-            //            ResponseList<User> usersToAdd = twitter.lookupUsers(csv);
+                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
 
-            for (User user : usersToAdd) {
-                Follower follower = Follower.builder().twitterId(user.getId()).name(user.getName())
-                        .description(user.getDescription()).location(user.getLocation())
-                        .followersCount(user.getFollowersCount()).friendsCount(user.getFriendsCount()).build();
+                for (User user : usersToAdd) {
+                    //@formatter:off
+                    Follower follower = Follower.builder()
+                            .twitterId(user.getId())
+                            .screenName(user.getScreenName())
+                            .name(user.getName())
+                            .description(user.getDescription())
+                            .location(user.getLocation())
+                            .followersCount(user.getFollowersCount())
+                            .friendsCount(user.getFriendsCount())
+                     .build();
+                    //@formatter:on
 
-                followerRepository.save(follower);
+                    followerRepository.save(follower);
+                }
+
+            } catch (TwitterException e) {
+                e.printStackTrace();
             }
-        } catch (TwitterException e) {
-            e.printStackTrace();
         }
 
         return newUsers.size();
+    }
+
+    private List<Friend> getFriends() {
+        Twitter twitter = new TwitterFactory().getInstance();
+        PagableResponseList<User> partialUsers = null;
+        String screenName = "ade_bald";
+        long nextCursor = -1;
+        int maxResults = 200;
+        long sleepMilliSeconds = 60000l;
+        List<Friend> allUsers = new ArrayList<>();
+        int fakeCount = 0;
+
+        friendRepository.deleteAll();
+        serialiseList(partialUsers, "friends.ser", false);
+
+        do {
+            try {
+                partialUsers = twitter.getFriendsList(screenName, nextCursor, maxResults);
+
+                for (User user : partialUsers) {
+                    //@formatter:off
+                    Friend friend = Friend.builder()
+                            .twitterId(user.getId())
+                            .screenName(user.getScreenName())
+                            .name(user.getName())
+                            .description(user.getDescription())
+                            .location(user.getLocation())
+                            .followersCount(user.getFollowersCount())
+                            .friendsCount(user.getFriendsCount())
+                    .build();
+                    //@formatter:on
+
+                    allUsers.add(friend);
+                }
+
+                serialiseList(partialUsers, "friends.ser", true);
+
+                System.out.println("Total Friends retrieved: " + allUsers.size());
+
+                //todo debug
+                //                fakeCount++;
+                //                if (fakeCount == 1) {
+                //                    break;
+                //                }
+
+            } catch (TwitterException e) {
+                System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+
+                pauseSeconds(60);
+            }
+        } while ((nextCursor = partialUsers.getNextCursor()) != 0);
+
+        return allUsers;
     }
 
     private int updateFriends() {
@@ -178,58 +246,39 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        return newUsers.size();
-    }
-
-    private List<Friend> getFriends() {
-        Twitter twitter = new TwitterFactory().getInstance();
-        PagableResponseList<User> partialUsers = null;
-        String screenName = "ade_bald";
-        long nextCursor = -1;
-        int maxResults = 200;
-        long sleepMilliSeconds = 60000l;
-        List<Friend> allUsers = new ArrayList<>();
-        int fakeCount = 0;
-
-        friendRepository.deleteAll();
-        serialiseList(partialUsers, "friends.ser", false);
-
-        do {
+        if (newUsers.size() > 0) {
             try {
-                partialUsers = twitter.getFriendsList(screenName, nextCursor, maxResults);
+                long[] array = new long[newUsers.size()];
+                int i = 0;
+                for (Long newUser : newUsers) {
+                    array[i] = newUsers.get(i);
+                    i++;
+                }
 
-                for (User user : partialUsers) {
+                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
+
+                for (User user : usersToAdd) {
                     //@formatter:off
-                    Friend friend = Friend.builder().twitterId(
-                            user.getId())
+                    Friend friend = Friend.builder()
+                            .twitterId(user.getId())
+                            .screenName(user.getScreenName())
                             .name(user.getName())
                             .description(user.getDescription())
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
-                            .friendsCount(user.getFriendsCount()).build();
+                            .friendsCount(user.getFriendsCount())
+                            .build();
                     //@formatter:on
 
-                    allUsers.add(friend);
+                    friendRepository.save(friend);
                 }
 
-                serialiseList(partialUsers, "friends.ser", true);
-
-                System.out.println("Total Friends retrieved: " + allUsers.size());
-
-                //todo debug
-                //                fakeCount++;
-                //                if (fakeCount == 1) {
-                //                    break;
-                //                }
-
             } catch (TwitterException e) {
-                System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
-
-                pauseSeconds(60);
+                e.printStackTrace();
             }
-        } while ((nextCursor = partialUsers.getNextCursor()) != 0);
+        }
 
-        return allUsers;
+        return newUsers.size();
     }
 
     private void serialiseList(List<?> list, String fileName, boolean append) {
