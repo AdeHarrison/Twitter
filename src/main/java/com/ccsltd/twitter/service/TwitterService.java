@@ -1,7 +1,10 @@
 package com.ccsltd.twitter.service;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,16 +30,34 @@ import twitter4j.User;
 @Service
 public class TwitterService {
 
+    public static final String FOLLOWERS_SER = "followers.ser";
+    public static final String FRIENDS_SER = "friends.ser";
+
+    public static void main(String[] args) {
+        TwitterService twitterService = new TwitterService(null, null);
+        PagableResponseList<User> followers = twitterService.deserialiseList(FOLLOWERS_SER);
+        System.out.println(followers.size());
+    }
+
     private final FollowerRepository followerRepository;
     private final FriendRepository friendRepository;
 
     public String initialiseData() {
         List<Follower> followers = getFollowers();
-        followerRepository.saveAll(followers);
+        //        serialiseList(followers, FOLLOWERS_SER, false);
+
+        for (Follower follower : followers) {
+            try {
+                followerRepository.save(follower);
+            } catch (Exception cve) {
+                System.out.println(String.format("Duplicate Twitter Id {%s}", follower.getTwitterId()));
+            }
+        }
 
         pauseSeconds(10);
 
         List<Friend> friends = getFriends();
+        //        serialiseList(friends, FRIENDS_SER, false);
         friendRepository.saveAll(friends);
 
         return String.format("'%s' Followers created, '%s' Followers created", followers.size(), friends.size());
@@ -60,7 +81,7 @@ public class TwitterService {
         int fakeCount = 0;
 
         followerRepository.deleteAll();
-        serialiseList(partialUsers, "followers.ser", false);
+        //        serialiseList(partialUsers, FOLLOWERS_SER, false);
 
         do {
             try {
@@ -82,8 +103,6 @@ public class TwitterService {
                     allUsers.add(follower);
                 }
 
-                serialiseList(partialUsers, "followers.ser", true);
-
                 System.out.println("Total Followers retrieved: " + allUsers.size());
 
                 //todo debug
@@ -92,7 +111,7 @@ public class TwitterService {
                 //                    break;
                 //                }
 
-            } catch (TwitterException e) {
+            } catch (TwitterException te) {
                 System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
@@ -176,7 +195,7 @@ public class TwitterService {
         int fakeCount = 0;
 
         friendRepository.deleteAll();
-        serialiseList(partialUsers, "friends.ser", false);
+        serialiseList(partialUsers, FRIENDS_SER, false);
 
         do {
             try {
@@ -198,8 +217,6 @@ public class TwitterService {
                     allUsers.add(friend);
                 }
 
-                serialiseList(partialUsers, "friends.ser", true);
-
                 System.out.println("Total Friends retrieved: " + allUsers.size());
 
                 //todo debug
@@ -208,7 +225,7 @@ public class TwitterService {
                 //                    break;
                 //                }
 
-            } catch (TwitterException e) {
+            } catch (TwitterException te) {
                 System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
@@ -288,6 +305,7 @@ public class TwitterService {
             fout = new FileOutputStream(fileName, append);
             oos = new ObjectOutputStream(fout);
             oos.writeObject(list);
+            oos.flush();
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -299,6 +317,52 @@ public class TwitterService {
                 }
             }
         }
+    }
+
+    private PagableResponseList<User> deserialiseList(String fileName) {
+        //        String s = "Hello World";
+        //        byte[] b = {'e', 'x', 'a', 'm', 'p', 'l', 'e'};
+        //
+        //        try {
+        //            // create a new file with an ObjectOutputStream
+        //            FileOutputStream out = new FileOutputStream("/home/ade/Documents/Projects/java/Twitter/test.txt");
+        //            ObjectOutputStream oout = new ObjectOutputStream(out);
+        //
+        //            // write something in the file
+        //            oout.writeObject(s);
+        //            oout.writeObject(b);
+        //            oout.flush();
+        //
+        //            // create an ObjectInputStream for the file we created before
+        //            ObjectInputStream ois = new ObjectInputStream(new FileInputStream("test.txt"));
+        //
+        //            // read and print an object and cast it as string
+        //            System.out.println("" + (String) ois.readObject());
+        //
+        //            // read and print an object and cast it as string
+        //            byte[] read = (byte[]) ois.readObject();
+        //            String s2 = new String(read);
+        //            System.out.println("" + s2);
+        //        } catch (Exception ex) {
+        //            ex.printStackTrace();
+        //        }
+        PagableResponseList<User> list = null;
+        //        List<User> list = null;
+        try {
+            FileInputStream fileIn = new FileInputStream("/home/ade/Documents/Projects/java/Twitter/" + fileName);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            list = (PagableResponseList<User>) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     private void pauseSeconds(int seconds) {

@@ -5,7 +5,8 @@ DROP TABLE IF EXISTS ignore_users CASCADE;
 CREATE TABLE ignore_users AS
 SELECT
 	fr.twitter_id,
-	fr.name
+	fr.name, 
+	fr.screen_name 
 FROM
 	friend fr
 WHERE
@@ -57,5 +58,6 @@ delete from ignore_users iu where iu.twitter_id = 1086742378571096064;
 delete from ignore_users iu where iu.twitter_id = 4829910760;
 delete from ignore_users iu where iu.twitter_id = 569505170;
 
+delete from ignore_users iu where iu.screen_name = 'nowokehere';
 -- ONLY run once to here
 
