@@ -15,6 +15,11 @@ public class TwitterController {
 
     private final TwitterService twitterService;
 
+    @GetMapping
+    public String homePage() {
+        return "My Twitter Home Page";
+    }
+
     @GetMapping(path = "/initialise")
     public String initialiseData() {
         return twitterService.initialiseData();

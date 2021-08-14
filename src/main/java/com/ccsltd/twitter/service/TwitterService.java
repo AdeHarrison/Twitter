@@ -138,7 +138,7 @@ public class TwitterService {
                 for (Long id : partialUsers.getIDs()) {
                     Optional<Follower> user = followerRepository.findByTwitterId(id);
 
-                    if (user.isEmpty()) {
+                    if (!user.isPresent()) {
                         newUsers.add(id);
                     }
                 }
@@ -252,7 +252,7 @@ public class TwitterService {
                 for (Long id : partialUsers.getIDs()) {
                     Optional<Friend> user = friendRepository.findByTwitterId(id);
 
-                    if (user.isEmpty()) {
+                    if (!user.isPresent()) {
                         newUsers.add(id);
                     }
                 }

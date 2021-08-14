@@ -14,7 +14,8 @@ WHERE
 		fo.twitter_id
 	FROM
 		follower fo);
--- Create table of all users to unfollow
+
+	-- Create table of all users to unfollow
 DROP TABLE IF EXISTS users_to_unfollow CASCADE;
 
 CREATE TABLE users_to_unfollow AS 
