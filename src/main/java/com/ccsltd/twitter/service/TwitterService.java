@@ -93,9 +93,9 @@ public class TwitterService {
         long sleepMilliSeconds = 60000l;
         List<Follower> allUsers = new ArrayList<>();
         int fakeCount = 0;
+        boolean isDebug = "true".equals(System.getenv("DEBUG"));
 
         followerRepository.deleteAll();
-        //        serialiseList(partialUsers, FOLLOWERS_SER, false);
 
         do {
             try {
@@ -120,11 +120,12 @@ public class TwitterService {
                 System.out.println("Total Followers retrieved: " + allUsers.size());
 
                 //todo debug
-                //                fakeCount++;
-                //                if (fakeCount == 2) {
-                //                    break;
-                //                }
-
+                if(isDebug) {
+                    fakeCount++;
+                    if (fakeCount == 2) {
+                        break;
+                    }
+                }
             } catch (TwitterException te) {
                 System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
@@ -207,9 +208,9 @@ public class TwitterService {
         long sleepMilliSeconds = 60000l;
         List<Friend> allUsers = new ArrayList<>();
         int fakeCount = 0;
+        boolean isDebug = "true".equals(System.getenv("DEBUG"));
 
         friendRepository.deleteAll();
-        serialiseList(partialUsers, FRIENDS_SER, false);
 
         do {
             try {
@@ -234,11 +235,12 @@ public class TwitterService {
                 System.out.println("Total Friends retrieved: " + allUsers.size());
 
                 //todo debug
-                //                fakeCount++;
-                //                if (fakeCount == 1) {
-                //                    break;
-                //                }
-
+                if(isDebug) {
+                    fakeCount++;
+                    if (fakeCount == 2) {
+                        break;
+                    }
+                }
             } catch (TwitterException te) {
                 System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
