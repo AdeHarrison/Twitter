@@ -32,6 +32,11 @@ public class TwitterController {
         return twitterService.unfollow();
     }
 
+    @GetMapping(path = "/deserialise")
+    public String deserialise() {
+        return twitterService.deserialise();
+    }
+
     @GetMapping(path = "/refresh")
     public String refreshData() {
         return twitterService.refreshData();

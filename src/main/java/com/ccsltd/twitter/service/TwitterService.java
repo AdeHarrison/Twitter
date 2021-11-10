@@ -29,8 +29,9 @@ public class TwitterService {
     public static final String FRIENDS_SER = "friends.ser";
 
 //    public static void main(String[] args) {
-//        TwitterService twitterService = new TwitterService(null, null, null);
-//        PagableResponseList<User> followers = twitterService.deserialiseList(FOLLOWERS_SER);
+//        TwitterService twitterService = new TwitterService(null,null, null, null);
+//        List<Follower> followers = twitterService.deserialiseList(FOLLOWERS_SER);
+//        List<Friend> friends = twitterService.deserialiseList(FRIENDS_SER);
 //        System.out.println(followers.size());
 //    }
 
@@ -74,7 +75,7 @@ public class TwitterService {
 
             processControlRepository.deleteById(1L);
 
-            return format("'%s' Followers created, '%s' Followers created", followers.size(), friends.size());
+            return format("'%s' Followers created, '%s' Friends created", followers.size(), friends.size());
         } else {
             return format("invalid initialise status '%s'", status);
         }
@@ -337,7 +338,19 @@ public class TwitterService {
         return newUsers.size();
     }
 
-    private void serialiseList(List<?> list, String fileName, boolean append) {
+    public String deserialise() {
+        followerRepository.deleteAll();
+        List<Follower> allFollowers = deserialiseList(FOLLOWERS_SER);
+        followerRepository.saveAll(allFollowers);
+
+        friendRepository.deleteAll();
+        List<Friend> allFriends = deserialiseList(FRIENDS_SER);
+        friendRepository.saveAll(allFriends);
+
+        return format("'%s' Followers deserialised, '%s' Friends deserialised", allFollowers.size(), allFriends.size());
+    }
+
+    private static void serialiseList(List<?> list, String fileName, boolean append) {
         ObjectOutputStream oos = null;
         FileOutputStream fout = null;
         try {
@@ -358,39 +371,13 @@ public class TwitterService {
         }
     }
 
-    private PagableResponseList<User> deserialiseList(String fileName) {
-        //        String s = "Hello World";
-        //        byte[] b = {'e', 'x', 'a', 'm', 'p', 'l', 'e'};
-        //
-        //        try {
-        //            // create a new file with an ObjectOutputStream
-        //            FileOutputStream out = new FileOutputStream("/home/ade/Documents/Projects/java/Twitter/test.txt");
-        //            ObjectOutputStream oout = new ObjectOutputStream(out);
-        //
-        //            // write something in the file
-        //            oout.writeObject(s);
-        //            oout.writeObject(b);
-        //            oout.flush();
-        //
-        //            // create an ObjectInputStream for the file we created before
-        //            ObjectInputStream ois = new ObjectInputStream(new FileInputStream("test.txt"));
-        //
-        //            // read and print an object and cast it as string
-        //            System.out.println("" + (String) ois.readObject());
-        //
-        //            // read and print an object and cast it as string
-        //            byte[] read = (byte[]) ois.readObject();
-        //            String s2 = new String(read);
-        //            System.out.println("" + s2);
-        //        } catch (Exception ex) {
-        //            ex.printStackTrace();
-        //        }
-        PagableResponseList<User> list = null;
-        //        List<User> list = null;
+    private <T> T deserialiseList(String fileName) {
+        List<T> list = null;
+
         try {
-            FileInputStream fileIn = new FileInputStream("/home/ade/Documents/Projects/java/Twitter/" + fileName);
+            FileInputStream fileIn = new FileInputStream("/home/ade/Documents/Local-Projects/local-java/Twitter/" + fileName);
             ObjectInputStream in = new ObjectInputStream(fileIn);
-            list = (PagableResponseList<User>) in.readObject();
+            list = (List<T>) in.readObject();
             in.close();
             fileIn.close();
         } catch (FileNotFoundException e) {
@@ -401,7 +388,7 @@ public class TwitterService {
             e.printStackTrace();
         }
 
-        return null;
+        return (T) list;
     }
 
     private void pauseSeconds(int seconds) {
