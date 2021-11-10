@@ -15,10 +15,7 @@ WHERE
 	FROM
 		follower fo);
 
-	-- Create table of all users to unfollow
-DROP TABLE IF EXISTS users_to_unfollow CASCADE;
-
-CREATE TABLE users_to_unfollow AS 
+insert into unfollow
 SELECT
 	fanfm.twitter_id,
 	fanfm.name,
@@ -32,5 +29,6 @@ WHERE
 	FROM
 		ignore_users iu);
 
+
 --	run when friends unfollowed in Twitter
---delete from friend fr where fr.screen_name in (select utu.screen_name from users_to_unfollow utu);
+--delete from friend fr where fr.screen_name in (select u.screen_name from unfollow u);

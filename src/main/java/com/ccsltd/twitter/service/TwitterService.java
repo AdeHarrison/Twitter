@@ -8,10 +8,14 @@ import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
 import com.ccsltd.twitter.repository.IgnoreUsersRepository;
 import com.ccsltd.twitter.repository.ProcessControlRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
+
 import twitter4j.*;
+import twitter4j.auth.AccessToken;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -28,12 +32,12 @@ public class TwitterService {
     public static final String FOLLOWERS_SER = "followers.ser";
     public static final String FRIENDS_SER = "friends.ser";
 
-//    public static void main(String[] args) {
-//        TwitterService twitterService = new TwitterService(null,null, null, null);
-//        List<Follower> followers = twitterService.deserialiseList(FOLLOWERS_SER);
-//        List<Friend> friends = twitterService.deserialiseList(FRIENDS_SER);
-//        System.out.println(followers.size());
-//    }
+    //    public static void main(String[] args) {
+    //        TwitterService twitterService = new TwitterService(null,null, null, null);
+    //        List<Follower> followers = twitterService.deserialiseList(FOLLOWERS_SER);
+    //        List<Friend> friends = twitterService.deserialiseList(FRIENDS_SER);
+    //        System.out.println(followers.size());
+    //    }
 
     private final FollowerRepository followerRepository;
     private final ProcessControlRepository processControlRepository;
@@ -258,9 +262,9 @@ public class TwitterService {
     public List<Unfollow> unfollow() {
         Twitter twitter = new TwitterFactory().getInstance();
 
-//        AccessToken accessToken = new AccessToken(twitter.getAut, twitterSecret)
-//        twitter.setOAuthAccessToken(accessToken)
-
+//        String accessToken = System.getenv("twitter4j.oauth.accessToken");
+//        String accessSecret = System.getenv("twitter4j.oauth.accessTokenSecret");
+//        twitter.setOAuthAccessToken(new AccessToken(accessToken, accessSecret));
 
         List<Unfollow> allToUnfollow = ignoreUsersRepository.findAll();
 
@@ -375,7 +379,8 @@ public class TwitterService {
         List<T> list = null;
 
         try {
-            FileInputStream fileIn = new FileInputStream("/home/ade/Documents/Local-Projects/local-java/Twitter/" + fileName);
+            FileInputStream fileIn = new FileInputStream(
+                    "/home/ade/Documents/Local-Projects/local-java/Twitter/" + fileName);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             list = (List<T>) in.readObject();
             in.close();
