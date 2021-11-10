@@ -1,73 +1,87 @@
 package com.ccsltd.twitter.service;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import com.ccsltd.twitter.entity.Follower;
+import com.ccsltd.twitter.entity.Friend;
+import com.ccsltd.twitter.entity.ProcessControl;
+import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.ProcessControlRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import twitter4j.*;
+
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.stereotype.Service;
-
-import com.ccsltd.twitter.entity.Follower;
-import com.ccsltd.twitter.entity.Friend;
-import com.ccsltd.twitter.repository.FollowerRepository;
-import com.ccsltd.twitter.repository.FriendRepository;
-
-import lombok.RequiredArgsConstructor;
-import twitter4j.IDs;
-import twitter4j.PagableResponseList;
-import twitter4j.ResponseList;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
-import twitter4j.User;
+import static java.lang.String.format;
 
 @RequiredArgsConstructor
+@Slf4j
 @Service
 public class TwitterService {
 
     public static final String FOLLOWERS_SER = "followers.ser";
     public static final String FRIENDS_SER = "friends.ser";
 
-    public static void main(String[] args) {
-        TwitterService twitterService = new TwitterService(null, null);
-        PagableResponseList<User> followers = twitterService.deserialiseList(FOLLOWERS_SER);
-        System.out.println(followers.size());
-    }
+//    public static void main(String[] args) {
+//        TwitterService twitterService = new TwitterService(null, null, null);
+//        PagableResponseList<User> followers = twitterService.deserialiseList(FOLLOWERS_SER);
+//        System.out.println(followers.size());
+//    }
 
     private final FollowerRepository followerRepository;
+    private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
 
-    public String initialiseData() {
-        List<Follower> followers = getFollowers();
-        //        serialiseList(followers, FOLLOWERS_SER, false);
+    public String initialiseData(String status) {
 
-        for (Follower follower : followers) {
-            try {
-                followerRepository.save(follower);
-            } catch (Exception cve) {
-                System.out.println(String.format("Duplicate Twitter Id {%s}", follower.getTwitterId()));
+        if ("prepare".equals(status)) {
+            if (processControlRepository.existsById(1L)) {
+                processControlRepository.deleteById(1L);
             }
+            processControlRepository.save(new ProcessControl(1L, "initialise", "prepared"));
+
+            return "initialise status is 'prepared' to execute";
+        } else if ("execute".equals(status)) {
+            ProcessControl currentProcess = processControlRepository.findStatusByProcess("initialise");
+
+            if (currentProcess == null || !"prepared".equals(currentProcess.getStatus())) {
+                return "initialise status is not 'prepared'";
+            }
+
+            List<Follower> followers = getFollowers();
+            serialiseList(followers, FOLLOWERS_SER, false);
+
+            for (Follower follower : followers) {
+                try {
+                    followerRepository.save(follower);
+                } catch (Exception cve) {
+                    System.out.println(format("Duplicate Twitter Id {%s}", follower.getTwitterId()));
+                }
+            }
+
+            pauseSeconds(10);
+
+            List<Friend> friends = getFriends();
+            serialiseList(friends, FRIENDS_SER, false);
+            friendRepository.saveAll(friends);
+
+            processControlRepository.deleteById(1L);
+
+            return format("'%s' Followers created, '%s' Followers created", followers.size(), friends.size());
+        } else {
+            return format("invalid initialise status '%s'", status);
         }
-
-        pauseSeconds(10);
-
-        List<Friend> friends = getFriends();
-        //        serialiseList(friends, FRIENDS_SER, false);
-        friendRepository.saveAll(friends);
-
-        return String.format("'%s' Followers created, '%s' Followers created", followers.size(), friends.size());
     }
 
     public String refreshData() {
         int newFolowerIds = updateFollowers();
         int newFriendIds = updateFriends();
 
-        return String.format("'%s' Followers added, '%s' Followers added", newFolowerIds, newFriendIds);
+        return format("'%s' Followers added, '%s' Followers added", newFolowerIds, newFriendIds);
     }
 
     private List<Follower> getFollowers() {
@@ -97,7 +111,7 @@ public class TwitterService {
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
                             .friendsCount(user.getFriendsCount())
-                    .build();
+                            .build();
                     //@formatter:on
 
                     allUsers.add(follower);
@@ -170,7 +184,7 @@ public class TwitterService {
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
                             .friendsCount(user.getFriendsCount())
-                     .build();
+                            .build();
                     //@formatter:on
 
                     followerRepository.save(follower);
@@ -211,7 +225,7 @@ public class TwitterService {
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
                             .friendsCount(user.getFriendsCount())
-                    .build();
+                            .build();
                     //@formatter:on
 
                     allUsers.add(friend);

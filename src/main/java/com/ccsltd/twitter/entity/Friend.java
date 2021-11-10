@@ -1,14 +1,14 @@
 package com.ccsltd.twitter.entity;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -41,4 +41,7 @@ public class Friend {
 
     @Column
     private Integer friendsCount;
+
+    @Column(name = "protected")
+    private Boolean protectedTweets;
 }

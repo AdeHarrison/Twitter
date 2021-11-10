@@ -3,3 +3,4 @@ select * from follower f where twitter_id =538349876;
 delete from follower f where twitter_id =538349876;
 select * from follower f where twitter_id =1310396731314655237;
 
+insert into pro

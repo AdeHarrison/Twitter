@@ -1,12 +1,11 @@
 package com.ccsltd.twitter.endpoint;
 
+import com.ccsltd.twitter.service.TwitterService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.ccsltd.twitter.service.TwitterService;
-
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
@@ -21,8 +20,8 @@ public class TwitterController {
     }
 
     @GetMapping(path = "/initialise")
-    public String initialiseData() {
-        return twitterService.initialiseData();
+    public String initialiseData(@RequestParam(name = "status", required = true) String status) {
+        return twitterService.initialiseData(status);
     }
 
     @GetMapping(path = "/refresh")
