@@ -46,18 +46,58 @@ delete from ignore_users where name = 'sk sobuj khan';
 delete from ignore_users where name = 'talkRADIO';
 delete from ignore_users where name = 'value-rewards';
 
-delete from ignore_users iu where iu.twitter_id = 1399477145211133954;
-delete from ignore_users iu where iu.twitter_id = 1342160731366633474;
-delete from ignore_users iu where iu.twitter_id = 1413659112223789056;
-delete from ignore_users iu where iu.twitter_id = 1410339389301997568;
-delete from ignore_users iu where iu.twitter_id = 1346516666;
-delete from ignore_users iu where iu.twitter_id = 1250788752005316609;
-delete from ignore_users iu where iu.twitter_id = 1183327276999544837;
-delete from ignore_users iu where iu.twitter_id = 2993223717;
-delete from ignore_users iu where iu.twitter_id = 1086742378571096064;
-delete from ignore_users iu where iu.twitter_id = 4829910760;
-delete from ignore_users iu where iu.twitter_id = 569505170;
+delete from ignore_users iu where screen_name in ( 
+select screen_name from ignore_users iu where screen_name not in (
+'Arron_banks',
+'BelindadeLucy',
+'CatharineHoey',
+'Change_Britain',
+'DavidDavisMP',
+'DavidGHFrost',
+'DefundBBC',
+'Digbylj',
+'DominicRaab',
+'EuroGuido',
+'FoundationRigby',
+'Fox_Claire',
+'GBNEWS',
+'GBNfans',
+'GuidoFawkes',
+'IsabelOakeshott',
+'Jacob_Rees_Mogg',
+'LeaveEUOfficial',
+'LozzaFox',
+'MichelleDewbs',
+'Nigel_Farage',
+'SuzanneEvans1',
+'ThatAlexWoman',
+'TiceRichard',
+'TimMartinWS',
+'afneil',
+'calvinrobinson',
+'darrengrimes_',
+'fishingforleave',
+'johnredwood',
+'labourleave',
+'pritipatel',
+'reformparty_uk',
+'thecarolemalone',
+'thecoastguy',
+'thereclaimparty',
+'tomhfh'));
 
-delete from ignore_users iu where iu.screen_name = 'nowokehere';
+--delete from ignore_users iu where iu.twitter_id = 1399477145211133954;
+--delete from ignore_users iu where iu.twitter_id = 1342160731366633474;
+--delete from ignore_users iu where iu.twitter_id = 1413659112223789056;
+--delete from ignore_users iu where iu.twitter_id = 1410339389301997568;
+--delete from ignore_users iu where iu.twitter_id = 1346516666;
+--delete from ignore_users iu where iu.twitter_id = 1250788752005316609;
+--delete from ignore_users iu where iu.twitter_id = 1183327276999544837;
+--delete from ignore_users iu where iu.twitter_id = 2993223717;
+--delete from ignore_users iu where iu.twitter_id = 1086742378571096064;
+--delete from ignore_users iu where iu.twitter_id = 4829910760;
+--delete from ignore_users iu where iu.twitter_id = 569505170;
+--
+--delete from ignore_users iu where iu.screen_name = 'nowokehere';
 -- ONLY run once to here
 

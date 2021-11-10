@@ -3,8 +3,10 @@ package com.ccsltd.twitter.service;
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
 import com.ccsltd.twitter.entity.ProcessControl;
+import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.IgnoreUsersRepository;
 import com.ccsltd.twitter.repository.ProcessControlRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class TwitterService {
     private final FollowerRepository followerRepository;
     private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
+    private final IgnoreUsersRepository ignoreUsersRepository;
 
     public String initialiseData(String status) {
 
@@ -120,7 +123,7 @@ public class TwitterService {
                 System.out.println("Total Followers retrieved: " + allUsers.size());
 
                 //todo debug
-                if(isDebug) {
+                if (isDebug) {
                     fakeCount++;
                     if (fakeCount == 2) {
                         break;
@@ -235,7 +238,7 @@ public class TwitterService {
                 System.out.println("Total Friends retrieved: " + allUsers.size());
 
                 //todo debug
-                if(isDebug) {
+                if (isDebug) {
                     fakeCount++;
                     if (fakeCount == 2) {
                         break;
@@ -249,6 +252,26 @@ public class TwitterService {
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
         return allUsers;
+    }
+
+    public List<Unfollow> unfollow() {
+        Twitter twitter = new TwitterFactory().getInstance();
+
+//        AccessToken accessToken = new AccessToken(twitter.getAut, twitterSecret)
+//        twitter.setOAuthAccessToken(accessToken)
+
+
+        List<Unfollow> allToUnfollow = ignoreUsersRepository.findAll();
+
+        for (Unfollow unfollow : allToUnfollow) {
+            try {
+                twitter.destroyFriendship(unfollow.getScreenName());
+            } catch (TwitterException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return allToUnfollow;
     }
 
     private int updateFriends() {
