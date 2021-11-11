@@ -3,6 +3,7 @@ RETURNS integer AS $total$
 declare
 	total integer;
 BEGIN
+
 DROP TABLE IF EXISTS following_and_not_follow_me CASCADE;
 
 CREATE TABLE following_and_not_follow_me AS

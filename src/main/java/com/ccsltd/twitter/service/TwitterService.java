@@ -1,5 +1,24 @@
 package com.ccsltd.twitter.service;
 
+import static java.lang.String.format;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+
+import org.springframework.stereotype.Service;
+
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
 import com.ccsltd.twitter.entity.ProcessControl;
@@ -8,22 +27,16 @@ import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
 import com.ccsltd.twitter.repository.ProcessControlRepository;
 import com.ccsltd.twitter.repository.UnfollowRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import twitter4j.*;
-
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.lang.String.format;
+import twitter4j.IDs;
+import twitter4j.PagableResponseList;
+import twitter4j.ResponseList;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.User;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -130,7 +143,8 @@ public class TwitterService {
                     }
                 }
             } catch (TwitterException te) {
-                System.out.println("Rate limit reached getting Followers, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+                System.out.println(
+                        "Rate limit reached getting Followers, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
             }
@@ -182,7 +196,8 @@ public class TwitterService {
                     }
                 }
             } catch (TwitterException te) {
-                System.out.println("Rate limit reached getting Friends, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+                System.out.println(
+                        "Rate limit reached getting Friends, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
             }
@@ -191,35 +206,11 @@ public class TwitterService {
         return allUsers;
     }
 
-    @Transactional
-    public List<Unfollow> unfollow() throws TwitterException {
-        Twitter twitter = new TwitterFactory().getInstance();
-
-        List<Unfollow> allToUnfollow = unfollowRepository.findAll();
-
-        int i = 1;
-
-        for (Unfollow unfollow : allToUnfollow) {
-            String screenName = unfollow.getScreenName();
-
-            twitter.destroyFriendship(screenName);
-            unfollowRepository.deleteByScreenName(screenName);
-
-            System.out.println(format("%d - unfollowed '%s'", i++, screenName));
-        }
-
-        return allToUnfollow;
-    }
-
     public String refresh() {
         int newFollowerIds = refreshFollowers();
         int newFriendIds = refreshFriends();
         StoredProcedureQuery storedProcedure = manager.createNamedStoredProcedureQuery("createUnfollower")
-                .registerStoredProcedureParameter(
-                        "unfollowerCount",
-                        Integer.class,
-                        ParameterMode.OUT
-                );
+                .registerStoredProcedureParameter("unfollowerCount", Integer.class, ParameterMode.OUT);
 
         storedProcedure.execute();
         Integer unfollowerCount = (Integer) storedProcedure.getOutputParameterValue("unfollowerCount");
@@ -227,10 +218,12 @@ public class TwitterService {
 
         StringBuilder unfollowerList = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
-            unfollowerList.append(String.format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
+            unfollowerList.append(
+                    String.format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
         }
 
-        return format("'%s' new Followers added, '%s' new Friends added, '%s' new unfollowers\n\n%s", newFollowerIds, newFriendIds, unfollowerCount, unfollowerList.toString());
+        return format("'%s' new Followers added, '%s' new Friends added, '%s' new unfollowers\n\n%s", newFollowerIds,
+                newFriendIds, unfollowerCount, unfollowerList.toString());
     }
 
     private int refreshFollowers() {
@@ -254,7 +247,8 @@ public class TwitterService {
                     }
                 }
             } catch (TwitterException e) {
-                System.out.println("Rate limit reached refreshing Followers, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+                System.out.println(
+                        "Rate limit reached refreshing Followers, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
             }
@@ -265,24 +259,15 @@ public class TwitterService {
                 long[] array = new long[newUsers.size()];
                 AtomicInteger i = new AtomicInteger(0);
 
-                newUsers.forEach(
-                        v -> array[i.getAndIncrement()] = v
-                );
+                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
 
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
 
-                usersToAdd.forEach(
-                        v -> followerRepository.save(Follower.builder()
-                                .twitterId(v.getId())
-                                .screenName(v.getScreenName())
-                                .name(v.getName())
-                                .description(v.getDescription())
-                                .location(v.getLocation())
-                                .followersCount(v.getFollowersCount())
-                                .friendsCount(v.getFriendsCount())
-                                .protectedTweets(v.isProtected())
-                                .build())
-                );
+                usersToAdd.forEach(v -> followerRepository.save(
+                        Follower.builder().twitterId(v.getId()).screenName(v.getScreenName()).name(v.getName())
+                                .description(v.getDescription()).location(v.getLocation())
+                                .followersCount(v.getFollowersCount()).friendsCount(v.getFriendsCount())
+                                .protectedTweets(v.isProtected()).build()));
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
@@ -312,7 +297,8 @@ public class TwitterService {
                     }
                 }
             } catch (TwitterException e) {
-                System.out.println("Rate limit reached refreshing Friends, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+                System.out.println(
+                        "Rate limit reached refreshing Friends, waiting :" + sleepMilliSeconds / 1000L + " seconds");
 
                 pauseSeconds(60);
             }
@@ -323,30 +309,42 @@ public class TwitterService {
                 long[] array = new long[newUsers.size()];
                 AtomicInteger i = new AtomicInteger(0);
 
-                newUsers.forEach(
-                        v -> array[i.getAndIncrement()] = v
-                );
+                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
 
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
 
-                usersToAdd.forEach(
-                        v -> friendRepository.save(Friend.builder()
-                                .twitterId(v.getId())
-                                .screenName(v.getScreenName())
-                                .name(v.getName())
-                                .description(v.getDescription())
-                                .location(v.getLocation())
-                                .followersCount(v.getFollowersCount())
-                                .friendsCount(v.getFriendsCount())
-                                .protectedTweets((v.isProtected()))
-                                .build())
-                );
+                usersToAdd.forEach(v -> friendRepository.save(
+                        Friend.builder().twitterId(v.getId()).screenName(v.getScreenName()).name(v.getName())
+                                .description(v.getDescription()).location(v.getLocation())
+                                .followersCount(v.getFollowersCount()).friendsCount(v.getFriendsCount())
+                                .protectedTweets((v.isProtected())).build()));
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
         }
 
         return newUsers.size();
+    }
+
+    @Transactional
+    public List<Unfollow> unfollow() throws TwitterException {
+        Twitter twitter = new TwitterFactory().getInstance();
+
+        List<Unfollow> allToUnfollow = unfollowRepository.findAll();
+
+        int i = 1;
+
+        for (Unfollow unfollow : allToUnfollow) {
+            String screenName = unfollow.getScreenName();
+
+            twitter.destroyFriendship(screenName);
+            unfollowRepository.deleteByScreenName(screenName);
+            friendRepository.deleteByScreenName(screenName);
+
+            System.out.println(format("%d - unfollowed '%s'", i++, screenName));
+        }
+
+        return allToUnfollow;
     }
 
     public String reset() {
@@ -361,7 +359,7 @@ public class TwitterService {
         return format("'%s' Followers deserialized, '%s' Friends deserialized", allFollowers.size(), allFriends.size());
     }
 
-    private static void serializeList(List<?> list, String fileName, boolean append) {
+    private void serializeList(List<?> list, String fileName, boolean append) {
         ObjectOutputStream oos = null;
 
         try {

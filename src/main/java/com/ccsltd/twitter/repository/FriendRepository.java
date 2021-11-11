@@ -10,4 +10,6 @@ import com.ccsltd.twitter.entity.Friend;
 @Repository
 public interface FriendRepository extends JpaRepository<Friend, Long> {
     Optional<Friend> findByTwitterId(Long id);
+
+    void deleteByScreenName(String screenName);
 }
