@@ -6,16 +6,12 @@ import com.ccsltd.twitter.entity.ProcessControl;
 import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
-import com.ccsltd.twitter.repository.IgnoreUsersRepository;
 import com.ccsltd.twitter.repository.ProcessControlRepository;
-
+import com.ccsltd.twitter.repository.UnfollowRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
-
 import twitter4j.*;
-import twitter4j.auth.AccessToken;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -39,10 +35,27 @@ public class TwitterService {
     //        System.out.println(followers.size());
     //    }
 
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            System.out.println("Usage: java twitter4j.examples.friendship.DestroyFriendship [screen name]");
+            System.exit(-1);
+        }
+        try {
+            Twitter twitter = new TwitterFactory().getInstance();
+            twitter.destroyFriendship(args[0]);
+            System.out.println("Successfully unfollowed [" + args[0] + "].");
+            System.exit(0);
+        } catch (TwitterException te) {
+            te.printStackTrace();
+            System.out.println("Failed to unfollow: " + te.getMessage());
+            System.exit(-1);
+        }
+    }
+
     private final FollowerRepository followerRepository;
     private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
-    private final IgnoreUsersRepository ignoreUsersRepository;
+    private final UnfollowRepository unfollowRepository;
 
     public String initialiseData(String status) {
 
@@ -54,7 +67,7 @@ public class TwitterService {
 
             return "initialise status is 'prepared' to execute";
         } else if ("execute".equals(status)) {
-            ProcessControl currentProcess = processControlRepository.findStatusByProcess("initialise");
+            ProcessControl currentProcess = processControlRepository.findByProcess("initialise");
 
             if (currentProcess == null || !"prepared".equals(currentProcess.getStatus())) {
                 return "initialise status is not 'prepared'";
@@ -101,7 +114,7 @@ public class TwitterService {
         long sleepMilliSeconds = 60000l;
         List<Follower> allUsers = new ArrayList<>();
         int fakeCount = 0;
-        boolean isDebug = "true".equals(System.getenv("DEBUG"));
+        boolean isDebug = "true".equals(System.getenv("debug"));
 
         followerRepository.deleteAll();
 
@@ -216,7 +229,7 @@ public class TwitterService {
         long sleepMilliSeconds = 60000l;
         List<Friend> allUsers = new ArrayList<>();
         int fakeCount = 0;
-        boolean isDebug = "true".equals(System.getenv("DEBUG"));
+        boolean isDebug = "true".equals(System.getenv("debug"));
 
         friendRepository.deleteAll();
 
@@ -259,21 +272,18 @@ public class TwitterService {
         return allUsers;
     }
 
-    public List<Unfollow> unfollow() {
+    public List<Unfollow> unfollow() throws TwitterException {
         Twitter twitter = new TwitterFactory().getInstance();
 
-//        String accessToken = System.getenv("twitter4j.oauth.accessToken");
-//        String accessSecret = System.getenv("twitter4j.oauth.accessTokenSecret");
-//        twitter.setOAuthAccessToken(new AccessToken(accessToken, accessSecret));
-
-        List<Unfollow> allToUnfollow = ignoreUsersRepository.findAll();
+        List<Unfollow> allToUnfollow = unfollowRepository.findAll();
 
         for (Unfollow unfollow : allToUnfollow) {
-            try {
-                twitter.destroyFriendship(unfollow.getScreenName());
-            } catch (TwitterException e) {
-                e.printStackTrace();
-            }
+            String screenName = unfollow.getScreenName();
+
+            twitter.destroyFriendship(screenName);
+            unfollowRepository.deleteByScreenName(screenName);
+
+            System.out.println(String.format("unfollowed '%s'", screenName));
         }
 
         return allToUnfollow;
