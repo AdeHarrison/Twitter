@@ -364,7 +364,8 @@ public class TwitterService {
         List<T> list = null;
 
         try {
-            FileInputStream fileIn = new FileInputStream(System.getProperty("user.dir") + "/" + fileName);
+            String currentDir = System.getProperty("user.dir");
+            FileInputStream fileIn = new FileInputStream(currentDir + "/" + fileName);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             list = (List<T>) in.readObject();
             in.close();
