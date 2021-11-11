@@ -25,7 +25,7 @@ public class TwitterController {
 
     @GetMapping(path = "/initialise")
     public String initialiseData(@RequestParam(name = "status", required = true) String status) {
-        return twitterService.initialiseData(status);
+        return twitterService.initialise(status);
     }
 
     @GetMapping(path = "/unfollow")
@@ -40,6 +40,6 @@ public class TwitterController {
 
     @GetMapping(path = "/refresh")
     public String refreshData() {
-        return twitterService.refreshData();
+        return twitterService.refresh();
     }
 }

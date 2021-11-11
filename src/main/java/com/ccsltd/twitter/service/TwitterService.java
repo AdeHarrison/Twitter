@@ -35,29 +35,12 @@ public class TwitterService {
     //        System.out.println(followers.size());
     //    }
 
-    public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Usage: java twitter4j.examples.friendship.DestroyFriendship [screen name]");
-            System.exit(-1);
-        }
-        try {
-            Twitter twitter = new TwitterFactory().getInstance();
-            twitter.destroyFriendship(args[0]);
-            System.out.println("Successfully unfollowed [" + args[0] + "].");
-            System.exit(0);
-        } catch (TwitterException te) {
-            te.printStackTrace();
-            System.out.println("Failed to unfollow: " + te.getMessage());
-            System.exit(-1);
-        }
-    }
-
     private final FollowerRepository followerRepository;
     private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
     private final UnfollowRepository unfollowRepository;
 
-    public String initialiseData(String status) {
+    public String initialise(String status) {
 
         if ("prepare".equals(status)) {
             if (processControlRepository.existsById(1L)) {
@@ -96,13 +79,6 @@ public class TwitterService {
         } else {
             return format("invalid initialise status '%s'", status);
         }
-    }
-
-    public String refreshData() {
-        int newFolowerIds = updateFollowers();
-        int newFriendIds = updateFriends();
-
-        return format("'%s' Followers added, '%s' Followers added", newFolowerIds, newFriendIds);
     }
 
     private List<Follower> getFollowers() {
@@ -157,68 +133,6 @@ public class TwitterService {
         return allUsers;
     }
 
-    private int updateFollowers() {
-        Twitter twitter = new TwitterFactory().getInstance();
-        IDs partialUsers = null;
-        String screenName = "ade_bald";
-        long nextCursor = -1;
-        int maxResults = 5000;
-        long sleepMilliSeconds = 60000l;
-        List<Long> newUsers = new ArrayList<>();
-        int fakeCount = 0;
-
-        do {
-            try {
-                partialUsers = twitter.getFollowersIDs(screenName, nextCursor, maxResults);
-
-                for (Long id : partialUsers.getIDs()) {
-                    Optional<Follower> user = followerRepository.findByTwitterId(id);
-
-                    if (!user.isPresent()) {
-                        newUsers.add(id);
-                    }
-                }
-            } catch (TwitterException e) {
-                System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
-
-                pauseSeconds(60);
-            }
-        } while ((nextCursor = partialUsers.getNextCursor()) != 0);
-
-        if (newUsers.size() > 0) {
-            try {
-                long[] array = new long[newUsers.size()];
-                int i = 0;
-                for (Long newUser : newUsers) {
-                    array[i] = newUsers.get(i);
-                    i++;
-                }
-
-                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
-
-                for (User user : usersToAdd) {
-                    //@formatter:off
-                    Follower follower = Follower.builder()
-                            .twitterId(user.getId())
-                            .screenName(user.getScreenName())
-                            .name(user.getName())
-                            .description(user.getDescription())
-                            .location(user.getLocation())
-                            .followersCount(user.getFollowersCount())
-                            .friendsCount(user.getFriendsCount())
-                            .build();
-                    //@formatter:on
-
-                    followerRepository.save(follower);
-                }
-
-            } catch (TwitterException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return newUsers.size();
-    }
 
     private List<Friend> getFriends() {
         Twitter twitter = new TwitterFactory().getInstance();
@@ -289,7 +203,78 @@ public class TwitterService {
         return allToUnfollow;
     }
 
-    private int updateFriends() {
+    public String refresh() {
+        int newFolowerIds = refreshFollowers();
+        int newFriendIds = refreshFriends();
+
+        return format("'%s' Followers added, '%s' Followers added", newFolowerIds, newFriendIds);
+    }
+
+    private int refreshFollowers() {
+        Twitter twitter = new TwitterFactory().getInstance();
+        IDs partialUsers = null;
+        String screenName = "ade_bald";
+        long nextCursor = -1;
+        int maxResults = 5000;
+        long sleepMilliSeconds = 60000l;
+        List<Long> newUsers = new ArrayList<>();
+        int fakeCount = 0;
+
+        do {
+            try {
+                partialUsers = twitter.getFollowersIDs(screenName, nextCursor, maxResults);
+
+                for (Long id : partialUsers.getIDs()) {
+                    Optional<Follower> user = followerRepository.findByTwitterId(id);
+
+                    if (!user.isPresent()) {
+                        newUsers.add(id);
+                    }
+                }
+            } catch (TwitterException e) {
+                System.out.println("Rate limit reached, waiting :" + sleepMilliSeconds / 1000L + " seconds");
+
+                pauseSeconds(60);
+            }
+        } while ((nextCursor = partialUsers.getNextCursor()) != 0);
+
+        if (newUsers.size() > 0) {
+            try {
+                long[] array = new long[newUsers.size()];
+                int i = 0;
+                for (Long newUser : newUsers) {
+                    array[i] = newUsers.get(i);
+                    i++;
+                }
+
+                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
+
+                for (User user : usersToAdd) {
+                    //@formatter:off
+                    Follower follower = Follower.builder()
+                            .twitterId(user.getId())
+                            .screenName(user.getScreenName())
+                            .name(user.getName())
+                            .description(user.getDescription())
+                            .location(user.getLocation())
+                            .followersCount(user.getFollowersCount())
+                            .friendsCount(user.getFriendsCount())
+                            .protectedTweets(user.isProtected())
+                            .build();
+                    //@formatter:on
+
+                    followerRepository.save(follower);
+                }
+
+            } catch (TwitterException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return newUsers.size();
+    }
+
+    private int refreshFriends() {
         Twitter twitter = new TwitterFactory().getInstance();
         IDs partialUsers = null;
         String screenName = "ade_bald";
@@ -338,6 +323,7 @@ public class TwitterService {
                             .location(user.getLocation())
                             .followersCount(user.getFollowersCount())
                             .friendsCount(user.getFriendsCount())
+                            .protectedTweets((user.isProtected()))
                             .build();
                     //@formatter:on
 
