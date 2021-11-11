@@ -327,7 +327,7 @@ public class TwitterService {
         return newUsers.size();
     }
 
-    public String deserialize() {
+    public String reset() {
         followerRepository.deleteAll();
         List<Follower> allFollowers = deserializeList(FOLLOWERS_SER);
         followerRepository.saveAll(allFollowers);
@@ -364,8 +364,7 @@ public class TwitterService {
         List<T> list = null;
 
         try {
-            FileInputStream fileIn = new FileInputStream(
-                    "/home/ade/Documents/Local-Projects/local-java/Twitter/" + fileName);
+            FileInputStream fileIn = new FileInputStream(System.getProperty("user.dir") + "/" + fileName);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             list = (List<T>) in.readObject();
             in.close();
