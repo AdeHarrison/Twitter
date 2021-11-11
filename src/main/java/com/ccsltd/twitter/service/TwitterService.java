@@ -348,15 +348,18 @@ public class TwitterService {
     }
 
     public String reset(String resetTo) {
+        String followersFilename = createFileName(FOLLOWERS_SER, resetTo);
+        List<Follower> allFollowers = deserializeList(followersFilename);
         followerRepository.deleteAll();
-        List<Follower> allFollowers = deserializeList(createFileName(FOLLOWERS_SER, resetTo));
         followerRepository.saveAll(allFollowers);
 
+        String friendsFilename = createFileName(FRIENDS_SER, resetTo);
+        List<Friend> allFriends = deserializeList(friendsFilename);
         friendRepository.deleteAll();
-        List<Friend> allFriends = deserializeList(createFileName(FRIENDS_SER, resetTo));
         friendRepository.saveAll(allFriends);
 
-        return format("'%s' Followers deserialized, '%s' Friends deserialized", allFollowers.size(), allFriends.size());
+        return format("'%s' Followers deserialized from '%s', '%s' Friends deserialized from '%s'", allFollowers.size(),
+                followersFilename, allFriends.size(), friendsFilename);
     }
 
     public String snapshot(String snapshotTo) {
