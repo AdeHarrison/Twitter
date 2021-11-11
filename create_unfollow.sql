@@ -1,11 +1,15 @@
--- Create table of twitter ids Who I follow and don't follows me - 4105
+CREATE OR REPLACE FUNCTION create_unfollow ()
+RETURNS integer AS $total$
+declare
+	total integer;
+BEGIN
 DROP TABLE IF EXISTS following_and_not_follow_me CASCADE;
 
-CREATE TABLE following_and_not_follow_me AS 
+CREATE TABLE following_and_not_follow_me AS
 SELECT
 	fr.twitter_id,
 	fr.name,
-	fr.screen_name 
+	fr.screen_name
 FROM
 	friend fr
 WHERE
@@ -15,20 +19,23 @@ WHERE
 	FROM
 		follower fo);
 
+delete from unfollow;
+
 insert into unfollow
 SELECT
 	fanfm.twitter_id,
 	fanfm.name,
-	fanfm.screen_name 
+	fanfm.screen_name
 FROM
 	following_and_not_follow_me fanfm
 WHERE
 	fanfm.twitter_id NOT IN (
 	SELECT
-		iu.twitter_id
+		f.twitter_id
 	FROM
-		ignore_users iu);
+		fixed f);
 
-
---	run when friends unfollowed in Twitter
---delete from friend fr where fr.screen_name in (select u.screen_name from unfollow u);
+   SELECT count(*) into total FROM unfollow;
+   RETURN total;
+END;
+$total$ LANGUAGE plpgsql;
