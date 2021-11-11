@@ -2,11 +2,14 @@ package com.ccsltd.twitter.endpoint;
 
 import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.service.TwitterService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import twitter4j.TwitterException;
 
 import java.util.List;
@@ -34,8 +37,13 @@ public class TwitterController {
     }
 
     @GetMapping(path = "/reset")
-    public String reset() {
-        return twitterService.reset();
+    public String reset(@RequestParam(name = "to") String resetTo) {
+        return twitterService.reset(resetTo);
+    }
+
+    @GetMapping(path = "/snapshot")
+    public String snapshot(@RequestParam(name = "to") String snapshotTo) {
+        return twitterService.snapshot(snapshotTo);
     }
 
     @GetMapping(path = "/refresh")

@@ -43,8 +43,8 @@ import twitter4j.User;
 @Service
 public class TwitterService {
 
-    public static final String FOLLOWERS_SER = "followers.ser";
-    public static final String FRIENDS_SER = "friends.ser";
+    public static final String FOLLOWERS_SER = "followers_%s.ser";
+    public static final String FRIENDS_SER = "friends_%s.ser";
 
     //    public static void main(String[] args) {
     //        TwitterService twitterService = new TwitterService(null,null, null, null);
@@ -76,7 +76,7 @@ public class TwitterService {
             }
 
             List<Follower> followers = getFollowers();
-            serializeList(followers, FOLLOWERS_SER, false);
+            serializeList(followers, createFileName(FOLLOWERS_SER, "base"), false);
 
             for (Follower follower : followers) {
                 try {
@@ -89,7 +89,7 @@ public class TwitterService {
             pauseSeconds(10);
 
             List<Friend> friends = getFriends();
-            serializeList(friends, FRIENDS_SER, false);
+            serializeList(friends, createFileName(FRIENDS_SER, "base"), false);
             friendRepository.saveAll(friends);
 
             processControlRepository.deleteById(1L);
@@ -219,7 +219,7 @@ public class TwitterService {
         StringBuilder unfollowerList = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
             unfollowerList.append(
-                    String.format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
+                    format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
         }
 
         return format("'%s' new Followers added, '%s' new Friends added, '%s' new unfollowers\n\n%s", newFollowerIds,
@@ -347,16 +347,33 @@ public class TwitterService {
         return allToUnfollow;
     }
 
-    public String reset() {
+    public String reset(String resetTo) {
         followerRepository.deleteAll();
-        List<Follower> allFollowers = deserializeList(FOLLOWERS_SER);
+        List<Follower> allFollowers = deserializeList(createFileName(FOLLOWERS_SER, resetTo));
         followerRepository.saveAll(allFollowers);
 
         friendRepository.deleteAll();
-        List<Friend> allFriends = deserializeList(FRIENDS_SER);
+        List<Friend> allFriends = deserializeList(createFileName(FRIENDS_SER, resetTo));
         friendRepository.saveAll(allFriends);
 
         return format("'%s' Followers deserialized, '%s' Friends deserialized", allFollowers.size(), allFriends.size());
+    }
+
+    public String snapshot(String snapshotTo) {
+        List<Follower> followerList = followerRepository.findAll();
+        String followersFilename = createFileName(FOLLOWERS_SER, snapshotTo);
+        serializeList(followerList, followersFilename, false);
+
+        List<Friend> friendList = friendRepository.findAll();
+        String friendsFilename = createFileName(FRIENDS_SER, snapshotTo);
+        serializeList(friendList, friendsFilename, false);
+
+        return format("'%s' Followers serialized to '%s', '%s' Friends serialized to '%s'", followerList.size(),
+                followersFilename, friendList.size(), friendsFilename);
+    }
+
+    private String createFileName(String followers, String resetTo) {
+        return format(followers, resetTo);
     }
 
     private void serializeList(List<?> list, String fileName, boolean append) {
