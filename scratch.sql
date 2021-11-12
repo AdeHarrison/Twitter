@@ -1,3 +1,25 @@
+SELECT *
+    FROM follow_me_and_not_following fmanf
+    WHERE 
+        fmanf.description = ANY('{Brexiteer}'::text[]);
+
+SELECT
+	fo.twitter_id,
+	fo.name,
+	fo.screen_name
+FROM
+	follower fo
+WHERE
+	fo.twitter_id NOT IN (
+	SELECT
+		fr.twitter_id
+	FROM
+		friend fr);
+
+
+
+
+
 select count(f.twitter_id), twitter_id from follower f group by f.twitter_id ;
 select * from follower f where twitter_id =538349876;
 delete from follower f where twitter_id =538349876;
