@@ -19,10 +19,12 @@ import javax.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
+import com.ccsltd.twitter.entity.Follow;
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
 import com.ccsltd.twitter.entity.ProcessControl;
 import com.ccsltd.twitter.entity.Unfollow;
+import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
 import com.ccsltd.twitter.repository.ProcessControlRepository;
@@ -57,6 +59,7 @@ public class TwitterService {
     private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
     private final UnfollowRepository unfollowRepository;
+    private final FollowRepository followRepository;
     private final EntityManager manager;
 
     public String initialise(String status) {
@@ -207,23 +210,36 @@ public class TwitterService {
     }
 
     public String refresh() {
-        int newFollowerIds = refreshFollowers();
-        int newFriendIds = refreshFriends();
-        StoredProcedureQuery storedProcedure = manager.createNamedStoredProcedureQuery("createUnfollower")
-                .registerStoredProcedureParameter("unfollowerCount", Integer.class, ParameterMode.OUT);
+        int newFollowers = refreshFollowers();
+        int newFriends = refreshFriends();
+        StoredProcedureQuery unfollowFunction = manager.createNamedStoredProcedureQuery("createUnfollow")
+                .registerStoredProcedureParameter("unfollowCount", Integer.class, ParameterMode.OUT);
 
-        storedProcedure.execute();
-        Integer unfollowerCount = (Integer) storedProcedure.getOutputParameterValue("unfollowerCount");
+        unfollowFunction.execute();
+        Integer unfollowCount = (Integer) unfollowFunction.getOutputParameterValue("unfollowCount");
         List<Unfollow> unfollowList = unfollowRepository.findAll();
 
-        StringBuilder unfollowerList = new StringBuilder();
+        StringBuilder unfollowMessage = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
-            unfollowerList.append(
+            unfollowMessage.append(
                     format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
         }
 
-        return format("'%s' new Followers added, '%s' new Friends added, '%s' new unfollowers\n\n%s", newFollowerIds,
-                newFriendIds, unfollowerCount, unfollowerList.toString());
+        StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createFollow")
+                .registerStoredProcedureParameter("followCount", Integer.class, ParameterMode.OUT);
+
+        followFunction.execute();
+        Integer followCount = (Integer) followFunction.getOutputParameterValue("followCount");
+        List<Follow> followList = followRepository.findAll();
+
+        StringBuilder followMessage = new StringBuilder();
+        for (Follow follow : followList) {
+            followMessage.append(
+                    format("%d,%s,%s\n", follow.getTwitterId(), follow.getName(), follow.getName()));
+        }
+
+        return format("'%s' new Followers added, '%s' new Friends added, '%s' new unfollowers\n\n%s, '%s' new followers\n\n%s", newFollowers,
+                newFriends, unfollowCount, unfollowMessage.toString(), followCount, followMessage);
     }
 
     private int refreshFollowers() {

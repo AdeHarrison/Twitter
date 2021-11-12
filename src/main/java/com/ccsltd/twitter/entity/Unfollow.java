@@ -8,7 +8,19 @@ import lombok.NoArgsConstructor;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.NamedStoredProcedureQuery;
+
 import java.io.Serializable;
+
+@NamedStoredProcedureQuery(
+        name = "createUnfollow",
+        procedureName = "create_unfollow"
+)
+
+@NamedStoredProcedureQuery(
+        name = "createFollow",
+        procedureName = "create_follow"
+)
 
 @AllArgsConstructor
 @NoArgsConstructor

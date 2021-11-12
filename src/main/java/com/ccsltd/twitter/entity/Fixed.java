@@ -7,11 +7,6 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.io.Serializable;
 
-@NamedStoredProcedureQuery(
-        name = "createUnfollower",
-        procedureName = "create_unfollow"
-)
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
