@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static java.lang.String.format;
 
@@ -42,7 +43,7 @@ public class TwitterService {
     private final FollowRepository followRepository;
     private final EntityManager manager;
 
-    private final int SLEEP_SECONDS = 60;
+    private final int SLEEP_SECONDS = 30;
 
     public String initialise(String status) {
 
@@ -340,26 +341,32 @@ public class TwitterService {
     public List<Follow> follow() throws TwitterException {
         List<Follow> allToFollow = followRepository.findAll();
 
-        int i = 1;
+        Consumer<Follow> createFriendship = v -> {
+            String screenName = v.getScreenName();
+            boolean done = false;
 
-        //todo lambda
-        for (Follow follow : allToFollow) {
-            String screenName = follow.getScreenName();
+            while (!done) {
+                try {
+                    twitter.createFriendship(screenName);
+                    followRepository.deleteByScreenName(v.getScreenName());
+                    done = true;
 
-            try {
-                twitter.createFriendship(screenName);
-                followRepository.deleteByScreenName(screenName);
+                    System.out.println(format("followed '%s'", screenName));
+                } catch (TwitterException te) {
+                    System.out.println("Rate limit reached, waiting :" + SLEEP_SECONDS + " seconds");
 
-                System.out.println(format("%d - followed '%s'", i++, screenName));
-            } catch (TwitterException te) {
-                System.out.println(
-                        "Rate limit reached getting Followers, waiting :" + SLEEP_SECONDS + " seconds");
-
-                pauseSeconds(60);
+                    pauseSeconds(60);
+                }
             }
-        }
+        };
+
+        allToFollow.forEach(createFriendship);
 
         return allToFollow;
+    }
+
+    private void runConsumer(Consumer<String> f) {
+
     }
 
     public String reset(String resetTo) {
