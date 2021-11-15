@@ -12,8 +12,12 @@ import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
 import javax.transaction.Transactional;
 import java.io.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -385,20 +389,36 @@ public class TwitterService {
     }
 
     public String snapshot(String snapshotTo) {
+        String followersFilename;
+        String friendsFilename;
+
+        if ("now".equals(snapshotTo)) {
+            followersFilename = createNowFilename(FOLLOWERS_SER);
+            friendsFilename = createNowFilename(FRIENDS_SER);
+        } else {
+            followersFilename = createFileName(FOLLOWERS_SER, snapshotTo);
+            friendsFilename = createFileName(FRIENDS_SER, snapshotTo);
+        }
+
         List<Follower> followerList = followerRepository.findAll();
-        String followersFilename = createFileName(FOLLOWERS_SER, snapshotTo);
         serializeList(followerList, followersFilename, false);
 
         List<Friend> friendList = friendRepository.findAll();
-        String friendsFilename = createFileName(FRIENDS_SER, snapshotTo);
         serializeList(friendList, friendsFilename, false);
 
         return format("'%s' Followers serialized to '%s', '%s' Friends serialized to '%s'", followerList.size(),
                 followersFilename, friendList.size(), friendsFilename);
     }
 
-    private String createFileName(String followers, String resetTo) {
-        return format(followers, resetTo);
+    private String createFileName(String filenameFormat, String resetTo) {
+        return format(filenameFormat, resetTo);
+    }
+
+    private String createNowFilename(String filenameFormat) {
+        Instant now = Instant.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss").withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault());
+
+        return createFileName(filenameFormat, formatter.format(now));
     }
 
     private void serializeList(List<?> list, String fileName, boolean append) {
