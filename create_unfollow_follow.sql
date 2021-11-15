@@ -102,7 +102,12 @@ WHERE
 	OR lower(fmanf.description) LIKE '%britain%'
 	OR lower(fmanf.description) LIKE '%army%'
 	OR lower(fmanf.description) LIKE '%para%'
-	OR lower(fmanf.description) LIKE '%woke%';
+	OR lower(fmanf.description) LIKE '%woke%'
+	OR lower(fmanf.description) LIKE '%patriot%'
+	OR lower(fmanf.description) LIKE '%military%'
+	OR lower(fmanf.description) LIKE '%farage%'
+	OR lower(fmanf.description) LIKE '%trump%'
+	OR lower(fmanf.description) LIKE '%🇬🇧%';
 
 SELECT
 	count(*)
