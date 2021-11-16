@@ -9,7 +9,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.NamedStoredProcedureQuery;
-
 import java.io.Serializable;
 
 @NamedStoredProcedureQuery(
@@ -37,4 +36,7 @@ public class Unfollow implements Serializable {
 
     @Column
     private String name;
+
+    @Column
+    private String description;
 }

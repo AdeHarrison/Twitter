@@ -11,7 +11,8 @@ CREATE TABLE following_and_not_follow_me AS
 SELECT
 	fr.twitter_id,
 	fr.name,
-	fr.screen_name
+	fr.screen_name,
+	fr.description 
 FROM
 	friend fr
 WHERE
@@ -31,7 +32,8 @@ INSERT
 SELECT
 	fanfm.twitter_id,
 	fanfm.name,
-	fanfm.screen_name
+	fanfm.screen_name,
+	fanfm.description
 FROM
 	following_and_not_follow_me fanfm
 WHERE
@@ -101,7 +103,10 @@ WHERE
 	OR lower(fmanf.description) LIKE '%british%'
 	OR lower(fmanf.description) LIKE '%britain%'
 	OR lower(fmanf.description) LIKE '%army%'
+	OR lower(fmanf.description) LIKE '%navy%'
+	OR lower(fmanf.description) LIKE '%raf%'
 	OR lower(fmanf.description) LIKE '%para%'
+	OR lower(fmanf.description) LIKE '%marine%'
 	OR lower(fmanf.description) LIKE '%woke%'
 	OR lower(fmanf.description) LIKE '%patriot%'
 	OR lower(fmanf.description) LIKE '%military%'

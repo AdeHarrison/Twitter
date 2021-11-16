@@ -205,7 +205,7 @@ public class TwitterService {
         StringBuilder unfollowMessage = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
             unfollowMessage.append(
-                    format("%d,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName()));
+                    format("%d,%s,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName(), unfollow.getDescription()));
         }
 
         StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createFollow")
@@ -218,7 +218,7 @@ public class TwitterService {
         StringBuilder followMessage = new StringBuilder();
         for (Follow follow : followList) {
             followMessage.append(
-                    format("%d,%s,%s\n", follow.getTwitterId(), follow.getName(), follow.getName()));
+                    format("%d,%s,%s,%s\n", follow.getTwitterId(), follow.getName(), follow.getName(), follow.getDescription()));
         }
 
         return format("'%s' new Followers added, '%s' new Friends added, '%s' new to unfollow, '%s' new to follow\n\n%s\n\n\n\n\n\n%s", newFollowers,
