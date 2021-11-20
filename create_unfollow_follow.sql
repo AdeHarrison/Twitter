@@ -112,6 +112,9 @@ WHERE
 	OR lower(fmanf.description) LIKE '%military%'
 	OR lower(fmanf.description) LIKE '%farage%'
 	OR lower(fmanf.description) LIKE '%trump%'
+	OR lower(fmanf.description) LIKE '%cenotaph%'
+	OR lower(fmanf.description) LIKE '%royalist%'
+	OR lower(fmanf.description) LIKE '%gb news%'
 	OR lower(fmanf.description) LIKE '%🇬🇧%';
 
 SELECT

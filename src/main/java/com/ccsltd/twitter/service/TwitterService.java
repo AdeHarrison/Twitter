@@ -1,17 +1,12 @@
 package com.ccsltd.twitter.service;
 
-import com.ccsltd.twitter.entity.*;
-import com.ccsltd.twitter.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import twitter4j.*;
+import static java.lang.String.format;
 
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -22,13 +17,41 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static java.lang.String.format;
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+
+import org.springframework.stereotype.Service;
+
+import com.ccsltd.twitter.entity.Fixed;
+import com.ccsltd.twitter.entity.Follow;
+import com.ccsltd.twitter.entity.Follower;
+import com.ccsltd.twitter.entity.Friend;
+import com.ccsltd.twitter.entity.ProcessControl;
+import com.ccsltd.twitter.entity.Unfollow;
+import com.ccsltd.twitter.repository.FixedRepository;
+import com.ccsltd.twitter.repository.FollowRepository;
+import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.ProcessControlRepository;
+import com.ccsltd.twitter.repository.UnfollowRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import twitter4j.IDs;
+import twitter4j.PagableResponseList;
+import twitter4j.ResponseList;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.User;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
 public class TwitterService {
 
+    public static final String FIXED_SER = "fixed_%s.ser";
     public static final String FOLLOWERS_SER = "followers_%s.ser";
     public static final String FRIENDS_SER = "friends_%s.ser";
 
@@ -40,6 +63,7 @@ public class TwitterService {
     //    }
 
     private final Twitter twitter;
+    private final FixedRepository fixedRepository;
     private final FollowerRepository followerRepository;
     private final ProcessControlRepository processControlRepository;
     private final FriendRepository friendRepository;
@@ -205,7 +229,8 @@ public class TwitterService {
         StringBuilder unfollowMessage = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
             unfollowMessage.append(
-                    format("%d,%s,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName(), unfollow.getDescription()));
+                    format("%d,%s,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName(),
+                            unfollow.getDescription()));
         }
 
         StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createFollow")
@@ -217,12 +242,13 @@ public class TwitterService {
 
         StringBuilder followMessage = new StringBuilder();
         for (Follow follow : followList) {
-            followMessage.append(
-                    format("%d,%s,%s,%s\n", follow.getTwitterId(), follow.getName(), follow.getName(), follow.getDescription()));
+            followMessage.append(format("%d,%s,%s,%s\n", follow.getTwitterId(), follow.getName(), follow.getName(),
+                    follow.getDescription()));
         }
 
-        return format("'%s' new Followers added, '%s' new Friends added, '%s' new to unfollow, '%s' new to follow\n\n%s\n\n\n\n\n\n%s", newFollowers,
-                newFriends, unfollowCount, followCount, unfollowMessage, followMessage);
+        return format(
+                "'%s' new Followers added, '%s' new Friends added, '%s' new to unfollow, '%s' new to follow\n\n%s\n\n\n\n\n\n%s",
+                newFollowers, newFriends, unfollowCount, followCount, unfollowMessage, followMessage);
     }
 
     private int refreshFollowers() {
@@ -390,6 +416,11 @@ public class TwitterService {
     }
 
     public String reset(String resetTo) {
+        String fixedFilename = createFileName(FIXED_SER, resetTo);
+        List<Fixed> allFixed = deserializeList(fixedFilename);
+        fixedRepository.deleteAll();
+        fixedRepository.saveAll(allFixed);
+
         String followersFilename = createFileName(FOLLOWERS_SER, resetTo);
         List<Follower> allFollowers = deserializeList(followersFilename);
         followerRepository.deleteAll();
@@ -405,16 +436,22 @@ public class TwitterService {
     }
 
     public String snapshot(String snapshotTo) {
+        String fixedFilename;
         String followersFilename;
         String friendsFilename;
 
         if ("now".equals(snapshotTo)) {
+            fixedFilename = createNowFilename(FRIENDS_SER);
             followersFilename = createNowFilename(FOLLOWERS_SER);
             friendsFilename = createNowFilename(FRIENDS_SER);
         } else {
+            fixedFilename = createFileName(FIXED_SER, snapshotTo);
             followersFilename = createFileName(FOLLOWERS_SER, snapshotTo);
             friendsFilename = createFileName(FRIENDS_SER, snapshotTo);
         }
+
+        List<Fixed> fixedList = fixedRepository.findAll();
+        serializeList(fixedList, fixedFilename, false);
 
         List<Follower> followerList = followerRepository.findAll();
         serializeList(followerList, followersFilename, false);
@@ -427,7 +464,8 @@ public class TwitterService {
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
-        log.info(format("Rate limit count = %s, waiting %d seconds. total slept time = %s", rateLimitCount, SLEEP_SECONDS, sleptForSecondsTotal));
+        log.info(format("Rate limit count = %s, waiting %d seconds. total slept time = %s", rateLimitCount,
+                SLEEP_SECONDS, sleptForSecondsTotal));
 
         sleepForSeconds(SLEEP_SECONDS);
     }
@@ -438,7 +476,8 @@ public class TwitterService {
 
     private String createNowFilename(String filenameFormat) {
         Instant now = Instant.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss").withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss").withLocale(Locale.getDefault())
+                .withZone(ZoneId.systemDefault());
 
         return createFileName(filenameFormat, formatter.format(now));
     }
