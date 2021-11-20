@@ -431,8 +431,10 @@ public class TwitterService {
         friendRepository.deleteAll();
         friendRepository.saveAll(allFriends);
 
-        return format("'%s' Followers deserialized from '%s', '%s' Friends deserialized from '%s'", allFollowers.size(),
-                followersFilename, allFriends.size(), friendsFilename);
+        return format(
+                "'%s' Fixed deserialized from '%s', '%s' Followers deserialized from '%s', '%s' Friends deserialized from '%s'",
+                allFixed.size(), fixedFilename, allFollowers.size(), followersFilename, allFriends.size(),
+                friendsFilename);
     }
 
     public String snapshot(String snapshotTo) {
