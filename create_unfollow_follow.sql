@@ -100,8 +100,7 @@ FROM
 WHERE
 	lower(fmanf.description) LIKE '%brexit%'
 	OR lower(fmanf.description) LIKE '%english%'
-	OR lower(fmanf.description) LIKE '%british%'
-	OR lower(fmanf.description) LIKE '%britain%'
+	OR lower(fmanf.description) LIKE '%brit%'
 	OR lower(fmanf.description) LIKE '%army%'
 	OR lower(fmanf.description) LIKE '%navy%'
 	OR lower(fmanf.description) LIKE '%raf%'
@@ -115,6 +114,11 @@ WHERE
 	OR lower(fmanf.description) LIKE '%cenotaph%'
 	OR lower(fmanf.description) LIKE '%royalist%'
 	OR lower(fmanf.description) LIKE '%gb news%'
+	OR lower(fmanf.description) LIKE '%gbnew%'
+	OR lower(fmanf.description) LIKE '%blighty%'
+	OR lower(fmanf.description) LIKE '%queen%'
+	OR lower(fmanf.description) LIKE '%uk%'
+	OR lower(fmanf.description) LIKE '%woke%'
 	OR lower(fmanf.description) LIKE '%🇬🇧%';
 
 SELECT
