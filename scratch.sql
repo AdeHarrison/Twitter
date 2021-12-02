@@ -16,9 +16,8 @@ WHERE
 	FROM
 		friend fr);
 
-
-
-
+SELECT * FROM follower f where f.followers_count <21 and f.friends_count <21 ;
+SELECT * FROM friend  f where f.followers_count <21 and f.friends_count <21 ;
 
 select count(f.twitter_id), twitter_id from follower f group by f.twitter_id ;
 select * from follower f where twitter_id =538349876;
