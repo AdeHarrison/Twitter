@@ -461,8 +461,8 @@ public class TwitterService {
         List<Friend> friendList = friendRepository.findAll();
         serializeList(friendList, friendsFilename, false);
 
-        return format("'%s' Followers serialized to '%s', '%s' Friends serialized to '%s'", followerList.size(),
-                followersFilename, friendList.size(), friendsFilename);
+        return format("'%s' Fixed serialized to '%s', '%s' Followers serialized to '%s', '%s' Friends serialized to '%s'",
+                fixedList.size(), fixedFilename, followerList.size(), followersFilename, friendList.size(), friendsFilename);
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
