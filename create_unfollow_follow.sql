@@ -7,12 +7,18 @@ DECLARE
 BEGIN
 DROP TABLE IF EXISTS following_and_not_follow_me CASCADE;
 
+-- people I follow (friends) that are not followers
 CREATE TABLE following_and_not_follow_me AS
 SELECT
+	fr.id,
 	fr.twitter_id,
 	fr.name,
 	fr.screen_name,
-	fr.description 
+	fr.description, 
+	fr.location,
+	fr.followers_count,
+	fr.friends_count,
+	fr.protected
 FROM
 	friend fr
 WHERE
@@ -26,14 +32,20 @@ DELETE
 FROM
 	unfollow;
 
+-- people I follow (friends) that are not followers and not fixed who arn't expected to follow me 
 INSERT
 	INTO
-	unfollow
+	unfollow (twitter_id, id, name,	screen_name, description, location, followers_count, friends_count, protected)
 SELECT
 	fanfm.twitter_id,
+	fanfm.id,
 	fanfm.name,
 	fanfm.screen_name,
-	fanfm.description
+	fanfm.description, 
+	fanfm.location,
+	fanfm.followers_count,
+	fanfm.friends_count,
+	fanfm.protected 
 FROM
 	following_and_not_follow_me fanfm
 WHERE
@@ -55,6 +67,7 @@ END;
 
 $total$ LANGUAGE plpgsql;
 
+
 CREATE OR REPLACE
 FUNCTION create_follow ()
 RETURNS integer AS $total$
@@ -67,9 +80,14 @@ DROP TABLE IF EXISTS follow_me_and_not_following CASCADE;
 CREATE TABLE follow_me_and_not_following AS
 SELECT
 	fo.twitter_id,
+	fo.id,
 	fo.name,
 	fo.screen_name,
-	fo.description
+	fo.description, 
+	fo.location,
+	fo.followers_count,
+	fo.friends_count,
+	fo.protected 
 FROM
 	follower fo
 WHERE
@@ -91,14 +109,22 @@ FROM
 	follow;
 
 INSERT
-	INTO
-	follow
+	INTO follow (twitter_id, id, name,	screen_name, description, location, followers_count, friends_count, protected)
 SELECT
-	*
+	fmanf.twitter_id,
+	fmanf.id,
+	fmanf.name,
+	fmanf.screen_name,
+	fmanf.description, 
+	fmanf.location,
+	fmanf.followers_count,
+	fmanf.friends_count,
+	fmanf.protected
 FROM
 	follow_me_and_not_following fmanf
 WHERE
-	lower(fmanf.description) LIKE '%brexit%'
+	(fmanf.followers_count >2500 AND fmanf.friends_count >2500)
+	OR lower(fmanf.description) LIKE '%brexit%'
 	OR lower(fmanf.description) LIKE '%english%'
 	OR lower(fmanf.description) LIKE '%brit%'
 	OR lower(fmanf.description) LIKE '%army%'

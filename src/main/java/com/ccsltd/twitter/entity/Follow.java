@@ -22,6 +22,9 @@ public class Follow implements Serializable {
     private Long twitterId;
 
     @Column
+    private Long id;
+
+    @Column
     private String screenName;
 
     @Column
@@ -29,4 +32,16 @@ public class Follow implements Serializable {
 
     @Column
     private String description;
+
+    @Column
+    private String location;
+
+    @Column
+    private Integer followersCount;
+
+    @Column
+    private Integer friendsCount;
+
+    @Column(name = "protected")
+    private Boolean protectedTweets;
 }
