@@ -1,12 +1,17 @@
 package com.ccsltd.twitter.service;
 
-import static java.lang.String.format;
+import com.ccsltd.twitter.entity.*;
+import com.ccsltd.twitter.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import twitter4j.*;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+import java.io.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -17,34 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-
-import org.springframework.stereotype.Service;
-
-import com.ccsltd.twitter.entity.Fixed;
-import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.Follower;
-import com.ccsltd.twitter.entity.Friend;
-import com.ccsltd.twitter.entity.ProcessControl;
-import com.ccsltd.twitter.entity.Unfollow;
-import com.ccsltd.twitter.repository.FixedRepository;
-import com.ccsltd.twitter.repository.FollowRepository;
-import com.ccsltd.twitter.repository.FollowerRepository;
-import com.ccsltd.twitter.repository.FriendRepository;
-import com.ccsltd.twitter.repository.ProcessControlRepository;
-import com.ccsltd.twitter.repository.UnfollowRepository;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import twitter4j.IDs;
-import twitter4j.PagableResponseList;
-import twitter4j.ResponseList;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.User;
+import static java.lang.String.format;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -71,7 +49,7 @@ public class TwitterService {
     private final FollowRepository followRepository;
     private final EntityManager manager;
 
-    private final int SLEEP_SECONDS = 10;
+    private final int SLEEP_SECONDS = 60;
 
     public String initialise(String status) {
 
@@ -395,16 +373,33 @@ public class TwitterService {
                 try {
                     twitter.createFriendship(screenName);
                     followRepository.deleteByScreenName(v.getScreenName());
+//                    sleepForSeconds(1);
                     done = true;
-
                     log.info(format("followed '%s'", screenName));
                 } catch (TwitterException te) {
-                    if (te.getErrorCode() == 160) {
-                        log.info(format("Already requested to follow '%s'", screenName));
-                        break;
-                    } else {
-                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += SLEEP_SECONDS;
+
+                    switch (te.getErrorCode()) {
+
+                        case 108:
+                            followRepository.deleteByScreenName(v.getScreenName());
+                            done = true;
+                            log.info(format("User doesn't exist '%s'", screenName));
+                            return;
+
+                        case 160:
+                            followRepository.deleteByScreenName(v.getScreenName());
+                            done = true;
+                            log.info(format("Already requested to follow '%s'", screenName));
+                            return;
+
+                        case 161:
+                            log.info(format("Failed to follow '%s', Follow limit reached - try later", screenName));
+                            return;
+
+                        default:
+                            log.info(format("Unhandled error code '%s'", te.getErrorCode()));
+                            handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                            sleptForSecondsTotal += SLEEP_SECONDS;
                     }
                 }
             }
@@ -412,7 +407,7 @@ public class TwitterService {
 
         allToFollow.forEach(createFriendship);
 
-        return allToFollow;
+        return followRepository.findAll();
     }
 
     public String reset(String resetTo) {

@@ -121,31 +121,31 @@ SELECT
 	fmanf.friends_count,
 	fmanf.protected
 FROM
-	follow_me_and_not_following fmanf
-WHERE
-	(fmanf.followers_count >2500 AND fmanf.friends_count >2500)
-	OR lower(fmanf.description) LIKE '%brexit%'
-	OR lower(fmanf.description) LIKE '%english%'
-	OR lower(fmanf.description) LIKE '%brit%'
-	OR lower(fmanf.description) LIKE '%army%'
-	OR lower(fmanf.description) LIKE '%navy%'
-	OR lower(fmanf.description) LIKE '%raf%'
-	OR lower(fmanf.description) LIKE '%para%'
-	OR lower(fmanf.description) LIKE '%marine%'
-	OR lower(fmanf.description) LIKE '%woke%'
-	OR lower(fmanf.description) LIKE '%patriot%'
-	OR lower(fmanf.description) LIKE '%military%'
-	OR lower(fmanf.description) LIKE '%farage%'
-	OR lower(fmanf.description) LIKE '%trump%'
-	OR lower(fmanf.description) LIKE '%cenotaph%'
-	OR lower(fmanf.description) LIKE '%royalist%'
-	OR lower(fmanf.description) LIKE '%gb news%'
-	OR lower(fmanf.description) LIKE '%gbnew%'
-	OR lower(fmanf.description) LIKE '%blighty%'
-	OR lower(fmanf.description) LIKE '%queen%'
-	OR lower(fmanf.description) LIKE '%uk%'
-	OR lower(fmanf.description) LIKE '%woke%'
-	OR lower(fmanf.description) LIKE '%🇬🇧%';
+	follow_me_and_not_following fmanf;
+--WHERE
+--	(fmanf.followers_count >2500 AND fmanf.friends_count >2500)
+--	OR lower(fmanf.description) LIKE '%brexit%'
+--	OR lower(fmanf.description) LIKE '%english%'
+--	OR lower(fmanf.description) LIKE '%brit%'
+--	OR lower(fmanf.description) LIKE '%army%'
+--	OR lower(fmanf.description) LIKE '%navy%'
+--	OR lower(fmanf.description) LIKE '%raf%'
+--	OR lower(fmanf.description) LIKE '%para%'
+--	OR lower(fmanf.description) LIKE '%marine%'
+--	OR lower(fmanf.description) LIKE '%woke%'
+--	OR lower(fmanf.description) LIKE '%patriot%'
+--	OR lower(fmanf.description) LIKE '%military%'
+--	OR lower(fmanf.description) LIKE '%farage%'
+--	OR lower(fmanf.description) LIKE '%trump%'
+--	OR lower(fmanf.description) LIKE '%cenotaph%'
+--	OR lower(fmanf.description) LIKE '%royalist%'
+--	OR lower(fmanf.description) LIKE '%gb news%'
+--	OR lower(fmanf.description) LIKE '%gbnew%'
+--	OR lower(fmanf.description) LIKE '%blighty%'
+--	OR lower(fmanf.description) LIKE '%queen%'
+--	OR lower(fmanf.description) LIKE '%uk%'
+--	OR lower(fmanf.description) LIKE '%woke%'
+--	OR lower(fmanf.description) LIKE '%🇬🇧%';
 
 SELECT
 	count(*)
