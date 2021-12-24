@@ -415,24 +415,54 @@ public class TwitterService {
 
     public String reset(String resetTo) {
         String fixedFilename = createFileName(FIXED_SER, resetTo);
-        List<Fixed> allFixed = deserializeList(fixedFilename);
+        List<Fixed> fixedList = deserializeList(fixedFilename);
         fixedRepository.deleteAll();
-        fixedRepository.saveAll(allFixed);
+        fixedRepository.saveAll(fixedList);
 
-        String followersFilename = createFileName(FOLLOWER_SER, resetTo);
-        List<Follower> allFollowers = deserializeList(followersFilename);
+        String followFilename = createFileName(FOLLOW_SER, resetTo);
+        List<Follow> followList = deserializeList(followFilename);
+        followRepository.deleteAll();
+        followRepository.saveAll(followList);
+
+        String followerFilename = createFileName(FOLLOWER_SER, resetTo);
+        List<Follower> followerList = deserializeList(followerFilename);
         followerRepository.deleteAll();
-        followerRepository.saveAll(allFollowers);
+        followerRepository.saveAll(followerList);
 
-        String friendsFilename = createFileName(FRIEND_SER, resetTo);
-        List<Friend> allFriends = deserializeList(friendsFilename);
+        String friendFilename = createFileName(FRIEND_SER, resetTo);
+        List<Friend> friendList = deserializeList(friendFilename);
         friendRepository.deleteAll();
-        friendRepository.saveAll(allFriends);
+        friendRepository.saveAll(friendList);
 
-        return format(
-                "'%s' Fixed deserialized from '%s', '%s' Followers deserialized from '%s', '%s' Friends deserialized from '%s'",
-                allFixed.size(), fixedFilename, allFollowers.size(), followersFilename, allFriends.size(),
-                friendsFilename);
+        String processControlFilename = createFileName(PROCESS_CONTROL_SER, resetTo);
+        List<ProcessControl> processControlList  = deserializeList(processControlFilename);
+        processControlRepository.deleteAll();
+        processControlRepository.saveAll(processControlList);
+
+        String unfollowFilename = createFileName(UNFOLLOW_SER, resetTo);
+        List<Unfollow> unfollowList = deserializeList(unfollowFilename);
+        unfollowRepository.deleteAll();
+        unfollowRepository.saveAll(unfollowList);
+
+        //@formatter:off
+        String logMessage = format(
+                "'%s' Fixed deserialized to '%s', " +
+                        "'%s' Follow deserialized to '%s', " +
+                        "'%s' Followers deserialized to '%s', " +
+                        "'%s' Friends deserialized to '%s', " +
+                        "'%s' Process Control deserialized to '%s', " +
+                        "'%s' Unfollow deserialized to '%s'",
+                fixedList.size(), fixedFilename,
+                followList.size(), followFilename,
+                followerList.size(), followerFilename,
+                friendList.size(), friendFilename,
+                processControlList.size(), processControlFilename,
+                unfollowList.size(), unfollowFilename);
+        //@formatter:on
+
+        log.info(logMessage);
+
+        return logMessage;
     }
 
     public String snapshot(String snapshotTo) {
