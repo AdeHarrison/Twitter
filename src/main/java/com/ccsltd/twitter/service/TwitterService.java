@@ -1,12 +1,17 @@
 package com.ccsltd.twitter.service;
 
-import static java.lang.String.format;
+import com.ccsltd.twitter.entity.*;
+import com.ccsltd.twitter.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import twitter4j.*;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+import java.io.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -17,34 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-
-import org.springframework.stereotype.Service;
-
-import com.ccsltd.twitter.entity.Fixed;
-import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.Follower;
-import com.ccsltd.twitter.entity.Friend;
-import com.ccsltd.twitter.entity.ProcessControl;
-import com.ccsltd.twitter.entity.Unfollow;
-import com.ccsltd.twitter.repository.FixedRepository;
-import com.ccsltd.twitter.repository.FollowRepository;
-import com.ccsltd.twitter.repository.FollowerRepository;
-import com.ccsltd.twitter.repository.FriendRepository;
-import com.ccsltd.twitter.repository.ProcessControlRepository;
-import com.ccsltd.twitter.repository.UnfollowRepository;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import twitter4j.IDs;
-import twitter4j.PagableResponseList;
-import twitter4j.ResponseList;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.User;
+import static java.lang.String.format;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -52,8 +30,12 @@ import twitter4j.User;
 public class TwitterService {
 
     public static final String FIXED_SER = "fixed_%s.ser";
-    public static final String FOLLOWERS_SER = "followers_%s.ser";
-    public static final String FRIENDS_SER = "friends_%s.ser";
+    public static final String FOLLOWER_SER = "followers_%s.ser";
+    public static final String FRIEND_SER = "friends_%s.ser";
+    private static final String FOLLOW_SER = "follow_%s.ser";
+    private static final String PROCESS_CONTROL_SER = "process_control_%s.ser";
+    ;
+    private static final String UNFOLLOW_SER = "unfollow_%s.ser";
 
     //    public static void main(String[] args) {
     //        TwitterService twitterService = new TwitterService(null,null, null, null);
@@ -90,7 +72,7 @@ public class TwitterService {
             }
 
             List<Follower> followers = getFollowers();
-            serializeList(followers, createFileName(FOLLOWERS_SER, "base"), false);
+            serializeList(followers, createFileName(FOLLOWER_SER, "base"), false);
 
             for (Follower follower : followers) {
                 try {
@@ -103,7 +85,7 @@ public class TwitterService {
             sleepForSeconds(SLEEP_SECONDS);
 
             List<Friend> friends = getFriends();
-            serializeList(friends, createFileName(FRIENDS_SER, "base"), false);
+            serializeList(friends, createFileName(FRIEND_SER, "base"), false);
             friendRepository.saveAll(friends);
 
             processControlRepository.deleteById(1L);
@@ -401,26 +383,26 @@ public class TwitterService {
 
                     switch (te.getErrorCode()) {
 
-                    case 108:
-                        followRepository.deleteByScreenName(v.getScreenName());
-                        done = true;
-                        log.info("User doesn't exist '{}'", screenName);
-                        return;
+                        case 108:
+                            followRepository.deleteByScreenName(v.getScreenName());
+                            done = true;
+                            log.info("User doesn't exist '{}'", screenName);
+                            return;
 
-                    case 160:
-                        followRepository.deleteByScreenName(v.getScreenName());
-                        done = true;
-                        log.info("Already requested to follow '{}'", screenName);
-                        return;
+                        case 160:
+                            followRepository.deleteByScreenName(v.getScreenName());
+                            done = true;
+                            log.info("Already requested to follow '{}'", screenName);
+                            return;
 
-                    case 161:
-                        log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        return;
+                        case 161:
+                            log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                            return;
 
-                    default:
-                        log.info("Unhandled error code '{}'", te.getErrorCode());
-                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += SLEEP_SECONDS;
+                        default:
+                            log.info("Unhandled error code '{}'", te.getErrorCode());
+                            handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                            sleptForSecondsTotal += SLEEP_SECONDS;
                     }
                 }
             }
@@ -437,12 +419,12 @@ public class TwitterService {
         fixedRepository.deleteAll();
         fixedRepository.saveAll(allFixed);
 
-        String followersFilename = createFileName(FOLLOWERS_SER, resetTo);
+        String followersFilename = createFileName(FOLLOWER_SER, resetTo);
         List<Follower> allFollowers = deserializeList(followersFilename);
         followerRepository.deleteAll();
         followerRepository.saveAll(allFollowers);
 
-        String friendsFilename = createFileName(FRIENDS_SER, resetTo);
+        String friendsFilename = createFileName(FRIEND_SER, resetTo);
         List<Friend> allFriends = deserializeList(friendsFilename);
         friendRepository.deleteAll();
         friendRepository.saveAll(allFriends);
@@ -455,32 +437,65 @@ public class TwitterService {
 
     public String snapshot(String snapshotTo) {
         String fixedFilename;
-        String followersFilename;
-        String friendsFilename;
+        String followFilename;
+        String followerFilename;
+        String friendFilename;
+        String processControlFilename;
+        String unfollowFilename;
 
         if ("now".equals(snapshotTo)) {
-            fixedFilename = createNowFilename(FRIENDS_SER);
-            followersFilename = createNowFilename(FOLLOWERS_SER);
-            friendsFilename = createNowFilename(FRIENDS_SER);
+            fixedFilename = createNowFilename(FRIEND_SER);
+            followFilename = createNowFilename(FOLLOW_SER);
+            followerFilename = createNowFilename(FOLLOWER_SER);
+            friendFilename = createNowFilename(FRIEND_SER);
+            processControlFilename = createNowFilename(PROCESS_CONTROL_SER);
+            unfollowFilename = createNowFilename(UNFOLLOW_SER);
         } else {
             fixedFilename = createFileName(FIXED_SER, snapshotTo);
-            followersFilename = createFileName(FOLLOWERS_SER, snapshotTo);
-            friendsFilename = createFileName(FRIENDS_SER, snapshotTo);
+            followFilename = createFileName(FOLLOW_SER, snapshotTo);
+            followerFilename = createFileName(FOLLOWER_SER, snapshotTo);
+            friendFilename = createFileName(FRIEND_SER, snapshotTo);
+            processControlFilename = createFileName(PROCESS_CONTROL_SER, snapshotTo);
+            unfollowFilename = createFileName(UNFOLLOW_SER, snapshotTo);
         }
 
         List<Fixed> fixedList = fixedRepository.findAll();
         serializeList(fixedList, fixedFilename, false);
 
+        List<Follow> followList = followRepository.findAll();
+        serializeList(followList, followFilename, false);
+
         List<Follower> followerList = followerRepository.findAll();
-        serializeList(followerList, followersFilename, false);
+        serializeList(followerList, followerFilename, false);
 
         List<Friend> friendList = friendRepository.findAll();
-        serializeList(friendList, friendsFilename, false);
+        serializeList(friendList, friendFilename, false);
 
-        return format(
-                "'%s' Fixed serialized to '%s', '%s' Followers serialized to '%s', '%s' Friends serialized to '%s'",
-                fixedList.size(), fixedFilename, followerList.size(), followersFilename, friendList.size(),
-                friendsFilename);
+        List<ProcessControl> processControlList = processControlRepository.findAll();
+        serializeList(processControlList, processControlFilename, false);
+
+        List<Unfollow> unfollowList = unfollowRepository.findAll();
+        serializeList(unfollowList, unfollowFilename, false);
+
+        //@formatter:off
+        String logMessage = format(
+            "'%s' Fixed serialized to '%s', " +
+            "'%s' Follow serialized to '%s', " +
+            "'%s' Followers serialized to '%s', " +
+            "'%s' Friends serialized to '%s', " +
+            "'%s' Process Control serialized to '%s', " +
+            "'%s' Unfollow serialized to '%s'",
+            fixedList.size(), fixedFilename,
+            followList.size(), followFilename,
+            followerList.size(), followerFilename,
+            friendList.size(), friendFilename,
+            processControlList.size(), processControlFilename,
+            unfollowList.size(), unfollowFilename);
+        //@formatter:on
+
+        log.info(logMessage);
+
+        return logMessage;
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
