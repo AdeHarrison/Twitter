@@ -1,17 +1,12 @@
 package com.ccsltd.twitter.service;
 
-import com.ccsltd.twitter.entity.*;
-import com.ccsltd.twitter.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import twitter4j.*;
+import static java.lang.String.format;
 
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +17,34 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static java.lang.String.format;
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+
+import org.springframework.stereotype.Service;
+
+import com.ccsltd.twitter.entity.Fixed;
+import com.ccsltd.twitter.entity.Follow;
+import com.ccsltd.twitter.entity.Follower;
+import com.ccsltd.twitter.entity.Friend;
+import com.ccsltd.twitter.entity.ProcessControl;
+import com.ccsltd.twitter.entity.Unfollow;
+import com.ccsltd.twitter.repository.FixedRepository;
+import com.ccsltd.twitter.repository.FollowRepository;
+import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.ProcessControlRepository;
+import com.ccsltd.twitter.repository.UnfollowRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import twitter4j.IDs;
+import twitter4j.PagableResponseList;
+import twitter4j.ResponseList;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.User;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -375,6 +397,7 @@ public class TwitterService {
 
             while (!done) {
                 try {
+//                    sleepForSeconds(1);
                     twitter.createFriendship(screenName);
                     followRepository.deleteByScreenName(v.getScreenName());
                     done = true;
@@ -383,26 +406,26 @@ public class TwitterService {
 
                     switch (te.getErrorCode()) {
 
-                        case 108:
-                            followRepository.deleteByScreenName(v.getScreenName());
-                            done = true;
-                            log.info("User doesn't exist '{}'", screenName);
-                            return;
+                    case 108:
+                        followRepository.deleteByScreenName(v.getScreenName());
+                        done = true;
+                        log.info("User doesn't exist '{}'", screenName);
+                        return;
 
-                        case 160:
-                            followRepository.deleteByScreenName(v.getScreenName());
-                            done = true;
-                            log.info("Already requested to follow '{}'", screenName);
-                            return;
+                    case 160:
+                        followRepository.deleteByScreenName(v.getScreenName());
+                        done = true;
+                        log.info("Already requested to follow '{}'", screenName);
+                        return;
 
-                        case 161:
-                            log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                            return;
+                    case 161:
+                        log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                        return;
 
-                        default:
-                            log.info("Unhandled error code '{}'", te.getErrorCode());
-                            handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                            sleptForSecondsTotal += SLEEP_SECONDS;
+                    default:
+                        log.info("Unhandled error code '{}'", te.getErrorCode());
+                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                        sleptForSecondsTotal += SLEEP_SECONDS;
                     }
                 }
             }
@@ -435,7 +458,7 @@ public class TwitterService {
         friendRepository.saveAll(friendList);
 
         String processControlFilename = createFileName(PROCESS_CONTROL_SER, resetTo);
-        List<ProcessControl> processControlList  = deserializeList(processControlFilename);
+        List<ProcessControl> processControlList = deserializeList(processControlFilename);
         processControlRepository.deleteAll();
         processControlRepository.saveAll(processControlList);
 
@@ -586,8 +609,12 @@ public class TwitterService {
     }
 
     private void sleepForSeconds(int seconds) {
+        sleepForMilliSeconds(seconds * 1000);
+    }
+
+    private void sleepForMilliSeconds(int milliSeconds) {
         try {
-            Thread.sleep(seconds * 1000L);
+            Thread.sleep(milliSeconds);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
