@@ -344,6 +344,9 @@ public class TwitterService {
                     log.info("unfollowed '{}' ", screenName);
                 } catch (TwitterException te) {
                     if (te.getErrorCode() == 34) {
+                        unfollowRepository.deleteByScreenName(screenName);
+                        friendRepository.deleteByScreenName(screenName);
+                        done = true;
                         break;
                     } else {
                         handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
@@ -370,7 +373,7 @@ public class TwitterService {
 
             while (!done) {
                 try {
-                                        sleepForSeconds(1);
+//                                        sleepForMilliSeconds(500);
                     twitter.createFriendship(screenName);
                     followRepository.deleteByScreenName(v.getScreenName());
                     done = true;
