@@ -10,6 +10,9 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,16 +29,22 @@ public class Friend implements Serializable {
     private Long twitterId;
 
     @Column
+    private String name;
+
+    @Column
     private String screenName;
 
     @Column
-    private String name;
+    private String location;
 
     @Column
     private String description;
 
+    @Column(name = "protected")
+    private Boolean protectedTweets;
+
     @Column
-    private String location;
+    private Boolean verified;
 
     @Column
     private Integer followersCount;
@@ -43,6 +52,6 @@ public class Friend implements Serializable {
     @Column
     private Integer friendsCount;
 
-    @Column(name = "protected")
-    private Boolean protectedTweets;
+    @Column
+    private LocalDateTime created_at;
 }

@@ -7,15 +7,17 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 @NamedStoredProcedureQuery(
         name = "createUnfollow",
-        procedureName = "create_unfollow"
+        procedureName = "create_users_to_unfollow"
 )
 
 @NamedStoredProcedureQuery(
         name = "createFollow",
-        procedureName = "create_follow"
+        procedureName = "create_users_to_follow"
 )
 
 @AllArgsConstructor
@@ -29,26 +31,11 @@ public class Unfollow implements Serializable {
     private Long twitterId;
 
     @Column
-    private Long id;
+    private String name;
 
     @Column
     private String screenName;
 
     @Column
-    private String name;
-
-    @Column
     private String description;
-
-    @Column
-    private String location;
-
-    @Column
-    private Integer followersCount;
-
-    @Column
-    private Integer friendsCount;
-
-    @Column(name = "protected")
-    private Boolean protectedTweets;
 }

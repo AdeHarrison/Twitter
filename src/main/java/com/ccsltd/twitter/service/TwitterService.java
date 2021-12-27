@@ -1,6 +1,7 @@
 package com.ccsltd.twitter.service;
 
 import static java.lang.String.format;
+import static java.lang.System.getenv;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,9 +9,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -56,15 +59,8 @@ public class TwitterService {
     public static final String FRIEND_SER = "friends_%s.ser";
     private static final String FOLLOW_SER = "follow_%s.ser";
     private static final String PROCESS_CONTROL_SER = "process_control_%s.ser";
-    ;
-    private static final String UNFOLLOW_SER = "unfollow_%s.ser";
 
-    //    public static void main(String[] args) {
-    //        TwitterService twitterService = new TwitterService(null,null, null, null);
-    //        List<Follower> followers = twitterService.deserializeList(FOLLOWERS_SER);
-    //        List<Friend> friends = twitterService.deserializeList(FRIENDS_SER);
-    //        System.out.println(followers.size());
-    //    }
+    private static final String UNFOLLOW_SER = "unfollow_%s.ser";
 
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
@@ -100,7 +96,7 @@ public class TwitterService {
                 try {
                     followerRepository.save(follower);
                 } catch (Exception cve) {
-                    System.out.println(format("Duplicate Twitter Id '%s'", follower.getTwitterId()));
+                    log.info("Duplicate Twitter Id '{}'", follower.getTwitterId());
                 }
             }
 
@@ -125,7 +121,7 @@ public class TwitterService {
         int maxResults = 200;
         List<Follower> allUsers = new ArrayList<>();
         int fakeCount = 0;
-        boolean isDebug = "true".equals(System.getenv("debug"));
+        boolean isDebug = "true".equals(getenv("twitter4j.debug"));
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
 
@@ -135,32 +131,19 @@ public class TwitterService {
             try {
                 partialUsers = twitter.getFollowersList(screenName, nextCursor, maxResults);
 
-                for (User user : partialUsers) {
-                    //@formatter:off
-                    Follower follower = Follower.builder()
-                            .twitterId(user.getId())
-                            .screenName(user.getScreenName())
-                            .name(user.getName())
-                            .description(user.getDescription())
-                            .location(user.getLocation())
-                            .followersCount(user.getFollowersCount())
-                            .friendsCount(user.getFriendsCount())
-                            .build();
-                    //@formatter:on
+                partialUsers.forEach(user -> allUsers.add(createFollower(user)));
 
-                    allUsers.add(follower);
-                }
-
-                System.out.println("Total Followers retrieved: " + allUsers.size());
+                log.info("Total Followers retrieved: {}", allUsers.size());
 
                 //todo debug
                 if (isDebug) {
                     fakeCount++;
-                    if (fakeCount == 2) {
+                    if (fakeCount == 1) {
                         break;
                     }
                 }
             } catch (TwitterException te) {
+                log.info("TwitterException error code = {}", te.getErrorCode());
                 handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
                 sleptForSecondsTotal += SLEEP_SECONDS;
             }
@@ -176,7 +159,7 @@ public class TwitterService {
         int maxResults = 200;
         List<Friend> allUsers = new ArrayList<>();
         int fakeCount = 0;
-        boolean isDebug = "true".equals(System.getenv("debug"));
+        boolean isDebug = "true".equals(getenv("twitter4j.debug"));
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
 
@@ -186,32 +169,19 @@ public class TwitterService {
             try {
                 partialUsers = twitter.getFriendsList(screenName, nextCursor, maxResults);
 
-                for (User user : partialUsers) {
-                    //@formatter:off
-                    Friend friend = Friend.builder()
-                            .twitterId(user.getId())
-                            .screenName(user.getScreenName())
-                            .name(user.getName())
-                            .description(user.getDescription())
-                            .location(user.getLocation())
-                            .followersCount(user.getFollowersCount())
-                            .friendsCount(user.getFriendsCount())
-                            .build();
-                    //@formatter:on
+                partialUsers.forEach(user -> allUsers.add(createFriend(user)));
 
-                    allUsers.add(friend);
-                }
-
-                System.out.println("Total Friends retrieved: " + allUsers.size());
+                log.info("Total Friends retrieved: {}", allUsers.size());
 
                 //todo debug
                 if (isDebug) {
                     fakeCount++;
-                    if (fakeCount == 2) {
+                    if (fakeCount == 1) {
                         break;
                     }
                 }
             } catch (TwitterException te) {
+                log.info("TwitterException error code = {}", te.getErrorCode());
                 handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
                 sleptForSecondsTotal += SLEEP_SECONDS;
             }
@@ -233,7 +203,7 @@ public class TwitterService {
         StringBuilder unfollowMessage = new StringBuilder();
         for (Unfollow unfollow : unfollowList) {
             unfollowMessage.append(
-                    format("%d,%s,%s,%s\n", unfollow.getTwitterId(), unfollow.getName(), unfollow.getName(),
+                    format("%d,%s,%s,%s\n", unfollow.getTwitterId(), unfollow.getScreenName(), unfollow.getName(),
                             unfollow.getDescription()));
         }
 
@@ -278,6 +248,10 @@ public class TwitterService {
             } catch (TwitterException e) {
                 handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
                 sleptForSecondsTotal += SLEEP_SECONDS;
+
+            } catch (Exception e) {
+                handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                sleptForSecondsTotal += SLEEP_SECONDS;
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
@@ -289,7 +263,6 @@ public class TwitterService {
                 newUsers.forEach(v -> array[i.getAndIncrement()] = v);
 
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
-
                 usersToAdd.forEach(v -> followerRepository.save(
                         Follower.builder().twitterId(v.getId()).screenName(v.getScreenName()).name(v.getName())
                                 .description(v.getDescription()).location(v.getLocation())
@@ -368,7 +341,7 @@ public class TwitterService {
                     friendRepository.deleteByScreenName(screenName);
                     done = true;
 
-                    System.out.println(format("unfollowed '%s'", screenName));
+                    log.info("unfollowed '{}' ", screenName);
                 } catch (TwitterException te) {
                     if (te.getErrorCode() == 34) {
                         break;
@@ -397,7 +370,7 @@ public class TwitterService {
 
             while (!done) {
                 try {
-//                    sleepForSeconds(1);
+                                        sleepForSeconds(1);
                     twitter.createFriendship(screenName);
                     followRepository.deleteByScreenName(v.getScreenName());
                     done = true;
@@ -556,6 +529,44 @@ public class TwitterService {
                 sleptForSecondsTotal);
 
         sleepForSeconds(SLEEP_SECONDS);
+    }
+
+    private LocalDateTime convertDateToLocalDateTime(Date dateToConvert) {
+        return dateToConvert.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    private Follower createFollower(User user) {
+        //@formatter:off
+        return Follower.builder()
+                .twitterId(user.getId())
+                .name(user.getName())
+                .screenName(user.getScreenName())
+                .location(user.getLocation())
+                .description(user.getDescription())
+                .protectedTweets(user.isProtected())
+                .verified(user.isVerified())
+                .followersCount(user.getFollowersCount())
+                .friendsCount(user.getFriendsCount())
+                .created_at(convertDateToLocalDateTime(user.getCreatedAt()))
+                .build();
+        //@formatter:on
+    }
+
+    private Friend createFriend(User user) {
+        //@formatter:off
+        return Friend.builder()
+                .twitterId(user.getId())
+                .name(user.getName())
+                .screenName(user.getScreenName())
+                .location(user.getLocation())
+                .description(user.getDescription())
+                .protectedTweets(user.isProtected())
+                .verified(user.isVerified())
+                .followersCount(user.getFollowersCount())
+                .friendsCount(user.getFriendsCount())
+                .created_at(convertDateToLocalDateTime(user.getCreatedAt()))
+                .build();
+        //@formatter:on
     }
 
     private String createFileName(String filenameFormat, String resetTo) {

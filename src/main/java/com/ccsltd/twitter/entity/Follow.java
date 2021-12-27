@@ -1,15 +1,19 @@
 package com.ccsltd.twitter.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import java.io.Serializable;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Generated;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,22 +23,29 @@ import java.io.Serializable;
 public class Follow implements Serializable {
 
     @Id
-    private Long twitterId;
-
-    @Column
+    @GeneratedValue
     private Long id;
 
     @Column
-    private String screenName;
+    private Long twitterId;
 
     @Column
     private String name;
 
     @Column
-    private String description;
+    private String screenName;
 
     @Column
     private String location;
+
+    @Column
+    private String description;
+
+    @Column(name = "protected")
+    private Boolean protectedTweets;
+
+    @Column
+    private Boolean verified;
 
     @Column
     private Integer followersCount;
@@ -42,6 +53,6 @@ public class Follow implements Serializable {
     @Column
     private Integer friendsCount;
 
-    @Column(name = "protected")
-    private Boolean protectedTweets;
+    @Column
+    private LocalDateTime created_at;
 }
