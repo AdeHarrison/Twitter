@@ -1,9 +1,7 @@
-CREATE OR REPLACE
-FUNCTION create_users_to_follow ()
-RETURNS integer AS $total$
+CREATE OR REPLACE FUNCTION create_users_to_follow ()
+    RETURNS integer AS $total$
 DECLARE
 	total integer;
-
 BEGIN
 
 DELETE FROM follow;

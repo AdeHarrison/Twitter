@@ -5,19 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.NamedStoredProcedureQuery;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
 
 @NamedStoredProcedureQuery(
-        name = "createUnfollow",
+        name = "createUsersToUnfollow",
         procedureName = "create_users_to_unfollow"
-)
-
-@NamedStoredProcedureQuery(
-        name = "createFollow",
-        procedureName = "create_users_to_follow"
 )
 
 @AllArgsConstructor
