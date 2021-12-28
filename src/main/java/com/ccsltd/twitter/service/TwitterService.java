@@ -1,27 +1,55 @@
 package com.ccsltd.twitter.service;
 
-import com.ccsltd.twitter.entity.*;
-import com.ccsltd.twitter.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import twitter4j.*;
+import static java.lang.String.format;
+import static java.lang.System.getenv;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import javax.persistence.EntityManager;
 import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
 import javax.transaction.Transactional;
-import java.io.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
-import static java.lang.String.format;
-import static java.lang.System.getenv;
+import org.springframework.stereotype.Service;
+
+import com.ccsltd.twitter.entity.Fixed;
+import com.ccsltd.twitter.entity.Follow;
+import com.ccsltd.twitter.entity.FollowPending;
+import com.ccsltd.twitter.entity.Follower;
+import com.ccsltd.twitter.entity.Friend;
+import com.ccsltd.twitter.entity.ProcessControl;
+import com.ccsltd.twitter.entity.Unfollow;
+import com.ccsltd.twitter.repository.FixedRepository;
+import com.ccsltd.twitter.repository.FollowPendingRepository;
+import com.ccsltd.twitter.repository.FollowRepository;
+import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.ProcessControlRepository;
+import com.ccsltd.twitter.repository.UnfollowRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import twitter4j.IDs;
+import twitter4j.PagableResponseList;
+import twitter4j.ResponseList;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.User;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +71,7 @@ public class TwitterService {
     private final FriendRepository friendRepository;
     private final UnfollowRepository unfollowRepository;
     private final FollowRepository followRepository;
+    private final FollowPendingRepository followPendingRepository;
     private final EntityManager manager;
 
     private final int SLEEP_SECONDS = 60;
@@ -292,8 +321,8 @@ public class TwitterService {
     public String follow() {
         List<Follow> allToFollow = followRepository.findAll();
 
-        Consumer<Follow> createFriendship = v -> {
-            String screenName = v.getScreenName();
+        Consumer<Follow> createFriendship = user -> {
+            String screenName = user.getScreenName();
             boolean done = false;
             int rateLimitCount = 1;
             int sleptForSecondsTotal = 0;
@@ -301,33 +330,52 @@ public class TwitterService {
             while (!done) {
                 try {
                     twitter.createFriendship(screenName);
-                    followRepository.deleteByScreenName(v.getScreenName());
+                    followRepository.deleteByScreenName(user.getScreenName());
                     done = true;
                     log.info("followed '{}'", screenName);
                 } catch (TwitterException te) {
 
                     switch (te.getErrorCode()) {
 
-                        case 108:
-                            followRepository.deleteByScreenName(v.getScreenName());
-                            done = true;
-                            log.info("User doesn't exist '{}'", screenName);
-                            return;
+                    // User not found
+                    case 108:
+                        followerRepository.deleteByScreenName(user.getScreenName());
+                        followRepository.deleteByScreenName(user.getScreenName());
+                        done = true;
+                        log.info("User doesn't exist '{}'", screenName);
+                        return;
 
-                        case 160:
-                            followRepository.deleteByScreenName(v.getScreenName());
-                            done = true;
-                            log.info("Already requested to follow '{}'", screenName);
-                            return;
+                    // User followed already requested
+                    case 160:
+                        Optional<FollowPending> followPending = followPendingRepository.findByTwitterId(
+                                user.getTwitterId());
 
-                        case 161:
-                            log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                            return;
+                        if (followPending.isPresent()) {
+                            LocalDateTime createdDate = convertDateToLocalDateTime(followPending.get().getTimeStamp());
+                            LocalDateTime cutOffDate = LocalDateTime.now().minusDays(5L);
 
-                        default:
-                            log.info("Unhandled error code '{}'", te.getErrorCode());
-                            handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                            sleptForSecondsTotal += SLEEP_SECONDS;
+                            if (createdDate.isBefore(cutOffDate)) {
+
+                            }
+                        } else {
+                            followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
+                        }
+
+                        followerRepository.deleteByScreenName(user.getScreenName());
+                        followRepository.deleteByScreenName(user.getScreenName());
+                        done = true;
+                        log.info("Already requested to follow '{}'", screenName);
+                        return;
+
+                    // User follow rate limit reached
+                    case 161:
+                        log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                        return;
+
+                    default:
+                        log.info("Unhandled error code '{}'", te.getErrorCode());
+                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                        sleptForSecondsTotal += SLEEP_SECONDS;
                     }
                 }
             }
@@ -354,8 +402,8 @@ public class TwitterService {
 
         List<Unfollow> allToUnfollow = unfollowRepository.findAll();
 
-        Consumer<Unfollow> unfollowFriend = v -> {
-            String screenName = v.getScreenName();
+        Consumer<Unfollow> unfollowFriend = user -> {
+            String screenName = user.getScreenName();
             boolean done = false;
             int rateLimitCount = 1;
             int sleptForSecondsTotal = 0;
