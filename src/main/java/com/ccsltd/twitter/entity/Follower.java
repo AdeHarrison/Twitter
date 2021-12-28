@@ -26,7 +26,7 @@ public class Follower implements Serializable {
     @GeneratedValue
     private Long id;
 
-    @Column(unique = true)
+    @Column
     private Long twitterId;
 
     @Column
