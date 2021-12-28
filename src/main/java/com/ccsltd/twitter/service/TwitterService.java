@@ -18,24 +18,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
 import com.ccsltd.twitter.entity.Fixed;
 import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.FollowPending;
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
 import com.ccsltd.twitter.entity.ProcessControl;
 import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.repository.FixedRepository;
-import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
@@ -71,8 +63,6 @@ public class TwitterService {
     private final FriendRepository friendRepository;
     private final UnfollowRepository unfollowRepository;
     private final FollowRepository followRepository;
-    private final FollowPendingRepository followPendingRepository;
-    private final EntityManager manager;
 
     private final int SLEEP_SECONDS = 60;
 
@@ -301,165 +291,6 @@ public class TwitterService {
         }
 
         return newUsers.size();
-    }
-
-    public String identifyUsersToFollow() {
-        StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createUsersToFollow")
-                .registerStoredProcedureParameter("followCount", Integer.class, ParameterMode.OUT);
-
-        followFunction.execute();
-        Integer followCount = (Integer) followFunction.getOutputParameterValue("followCount");
-
-        String logMessage = format("'%s' Users to Follow", followCount);
-
-        log.info(logMessage);
-
-        return logMessage;
-    }
-
-    @Transactional
-    public String follow() {
-        List<Follow> allToFollow = followRepository.findAll();
-
-        Consumer<Follow> createFriendship = user -> {
-            String screenName = user.getScreenName();
-            boolean done = false;
-            int rateLimitCount = 1;
-            int sleptForSecondsTotal = 0;
-
-            while (!done) {
-                try {
-                    twitter.createFriendship(screenName);
-                    followRepository.deleteByScreenName(user.getScreenName());
-                    done = true;
-                    log.info("followed '{}'", screenName);
-                } catch (TwitterException te) {
-
-                    switch (te.getErrorCode()) {
-
-                    // User not found
-                    case 108:
-                        followerRepository.deleteByScreenName(user.getScreenName());
-                        followRepository.deleteByScreenName(user.getScreenName());
-                        done = true;
-                        log.info("User doesn't exist '{}'", screenName);
-                        return;
-
-                    // User followed already requested
-                    case 160:
-                        Optional<FollowPending> followPending = followPendingRepository.findByTwitterId(
-                                user.getTwitterId());
-
-                        if (followPending.isPresent()) {
-                            LocalDateTime createdDate = convertDateToLocalDateTime(followPending.get().getTimeStamp());
-                            LocalDateTime cutOffDate = LocalDateTime.now().minusDays(5L);
-
-                            if (createdDate.isBefore(cutOffDate)) {
-
-                            }
-                        } else {
-                            followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
-                        }
-
-                        followerRepository.deleteByScreenName(user.getScreenName());
-                        followRepository.deleteByScreenName(user.getScreenName());
-                        done = true;
-                        log.info("Already requested to follow '{}'", screenName);
-                        return;
-
-                    // User follow rate limit reached
-                    case 161:
-                        log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        return;
-
-                    default:
-                        log.info("Unhandled error code '{}'", te.getErrorCode());
-                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += SLEEP_SECONDS;
-                    }
-                }
-            }
-        };
-
-        allToFollow.forEach(createFriendship);
-
-        String logMessage = format("'%s' Users remain to follow", followRepository.findAll().size());
-
-        log.info(logMessage);
-
-        return logMessage;
-    }
-
-    @Transactional
-    public String unfollow() {
-        if (!checkSafeToUnfollow()) {
-            String logMessage = format("'%s' Users must be followed first", followRepository.findAll().size());
-
-            log.info(logMessage);
-
-            return logMessage;
-        }
-
-        List<Unfollow> allToUnfollow = unfollowRepository.findAll();
-
-        Consumer<Unfollow> unfollowFriend = user -> {
-            String screenName = user.getScreenName();
-            boolean done = false;
-            int rateLimitCount = 1;
-            int sleptForSecondsTotal = 0;
-
-            while (!done) {
-                try {
-                    twitter.destroyFriendship(screenName);
-                    unfollowRepository.deleteByScreenName(screenName);
-                    friendRepository.deleteByScreenName(screenName);
-                    done = true;
-
-                    log.info("unfollowed '{}' ", screenName);
-                } catch (TwitterException te) {
-                    if (te.getErrorCode() == 34) {
-                        unfollowRepository.deleteByScreenName(screenName);
-                        friendRepository.deleteByScreenName(screenName);
-                        done = true;
-                        break;
-                    } else {
-                        handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += SLEEP_SECONDS;
-                    }
-                }
-            }
-        };
-
-        allToUnfollow.forEach(unfollowFriend);
-
-        String logMessage = format("'%s' Users remain to unfollow", unfollowRepository.findAll().size());
-
-        log.info(logMessage);
-
-        return logMessage;
-    }
-
-    public String identifyUsersToUnfollow() {
-
-        if (!checkSafeToUnfollow()) {
-            String logMessage = format("'%s' Users must be followed first", followRepository.findAll().size());
-
-            log.info(logMessage);
-
-            return logMessage;
-        }
-
-        StoredProcedureQuery unfollowFunction = manager.createNamedStoredProcedureQuery("createUsersToUnfollow")
-                .registerStoredProcedureParameter("followCount", Integer.class, ParameterMode.OUT);
-
-        unfollowFunction.execute();
-        Integer unfollowCount = (Integer) unfollowFunction.getOutputParameterValue("followCount");
-
-        String logMessage = format("'%s' Users to Unfollow", unfollowCount);
-
-        log.info(logMessage);
-
-        return logMessage;
     }
 
     public String reset(String resetTo) {
