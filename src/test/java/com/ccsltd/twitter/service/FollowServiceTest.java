@@ -195,4 +195,24 @@ class FollowServiceTest {
 
         assertEquals(actual, expected);
     }
+
+    @Test
+    public void follow_rateLimitReached_ExceptionThrown() throws TwitterException {
+        String expected = "'1' Users remain to follow";
+
+        when(followRepository.findAll()).thenReturn(follow1List).thenReturn(follow1List);
+        when(twitter.createFriendship(screenName)).thenThrow(twitterException);
+        when(twitterException.getErrorCode()).thenReturn(161);
+
+        String actual = underTest.follow();
+
+        InOrder inOrder = inOrder(followRepository, twitter);
+        inOrder.verify(followRepository).findAll();
+        inOrder.verify(twitter).createFriendship(screenName);
+        inOrder.verify(followRepository).findAll();
+
+        verifyNoMoreInteractions(followRepository, twitter);
+
+        assertEquals(actual, expected);
+    }
 }

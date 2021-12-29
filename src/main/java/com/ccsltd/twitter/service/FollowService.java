@@ -116,12 +116,12 @@ public class FollowService {
                     // User follow rate limit reached
                     case 161:
                         log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                        Utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                        sleptForSecondsTotal += Utils.SLEEP_SECONDS;
                         return;
 
                     default:
                         log.info("Unhandled error code '{}'", te.getErrorCode());
-                        Utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += Utils.SLEEP_SECONDS;
                     }
                 }
             }
@@ -134,10 +134,6 @@ public class FollowService {
         log.info(logMessage);
 
         return logMessage;
-    }
-
-    private String createFileName(String filenameFormat, String resetTo) {
-        return format(filenameFormat, resetTo);
     }
 }
 
