@@ -81,6 +81,7 @@ public class FollowService {
                     case 108:
                         followerRepository.deleteByScreenName(user.getScreenName());
                         followRepository.deleteByScreenName(user.getScreenName());
+                        followIgnoreRepository.deleteByScreenName(user.getScreenName());
                         done = true;
                         log.info("User doesn't exist '{}'", screenName);
                         return;

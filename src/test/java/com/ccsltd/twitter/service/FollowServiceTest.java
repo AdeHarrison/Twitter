@@ -107,16 +107,18 @@ class FollowServiceTest {
         when(twitterException.getErrorCode()).thenReturn(108);
         doNothing().when(followerRepository).deleteByScreenName(screenName);
         doNothing().when(followRepository).deleteByScreenName(screenName);
+        doNothing().when(followIgnoreRepository).deleteByScreenName(screenName);
 
         String actual = underTest.follow();
 
-        InOrder inOrder = inOrder(followRepository, twitter, followerRepository);
+        InOrder inOrder = inOrder(followRepository, twitter, followerRepository, followIgnoreRepository);
         inOrder.verify(followRepository).findAll();
         inOrder.verify(twitter).createFriendship(screenName);
         inOrder.verify(followerRepository).deleteByScreenName(screenName);
+        inOrder.verify(followIgnoreRepository).deleteByScreenName(screenName);
         inOrder.verify(followRepository).findAll();
 
-        verifyNoMoreInteractions(followRepository, twitter, followerRepository);
+        verifyNoMoreInteractions(followRepository, twitter, followerRepository, followIgnoreRepository);
 
         assertEquals(actual, expected);
     }
