@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static java.util.Optional.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
@@ -30,6 +31,7 @@ import com.ccsltd.twitter.repository.FollowIgnoreRepository;
 import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.utils.Utils;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -55,6 +57,9 @@ class FollowServiceTest {
 
     @Mock
     private EntityManager manager;
+
+    @Mock
+    private Utils utils;
 
     @InjectMocks
     private FollowService underTest;
@@ -94,7 +99,7 @@ class FollowServiceTest {
     }
 
     @Test
-    public void follow_userNotFound_exceptionThrown() throws TwitterException {
+    public void follow_userNotFound_TwitterExceptionThrown() throws TwitterException {
         String expected = "'0' Users remain to follow";
 
         when(followRepository.findAll()).thenReturn(follow1List).thenReturn(emptyFollowList);
@@ -117,7 +122,7 @@ class FollowServiceTest {
     }
 
     @Test
-    public void follow_userAlreadyFollowedNotTracked_ExceptionThrown() throws TwitterException {
+    public void follow_userAlreadyFollowedNotTracked_TwitterExceptionThrown() throws TwitterException {
         String expected = "'0' Users remain to follow";
         Optional<FollowPending> followPending = Optional.ofNullable(null);
 
@@ -144,7 +149,7 @@ class FollowServiceTest {
     }
 
     @Test
-    public void follow_userAlreadyFollowedTrackedAndValid_ExceptionThrown() throws TwitterException {
+    public void follow_userAlreadyFollowedTrackedAndValid_TwitterExceptionThrown() throws TwitterException {
         String expected = "'0' Users remain to follow";
         FollowPending valid = new FollowPending();
         valid.setTimeStamp(LocalDateTime.now().minusDays(1));
@@ -170,7 +175,7 @@ class FollowServiceTest {
     }
 
     @Test
-    public void follow_userAlreadyFollowedTrackedAndExpired_ExceptionThrown() throws TwitterException {
+    public void follow_userAlreadyFollowedTrackedAndExpired_TwitterExceptionThrown() throws TwitterException {
         String expected = "'0' Users remain to follow";
         FollowPending expired = new FollowPending();
         expired.setTimeStamp(LocalDateTime.now().minusDays(6));
@@ -197,16 +202,38 @@ class FollowServiceTest {
     }
 
     @Test
-    public void follow_rateLimitReached_ExceptionThrown() throws TwitterException {
+    public void follow_rateLimitReached_TwitterExceptionThrown() throws TwitterException {
         String expected = "'1' Users remain to follow";
 
         when(followRepository.findAll()).thenReturn(follow1List).thenReturn(follow1List);
         when(twitter.createFriendship(screenName)).thenThrow(twitterException);
         when(twitterException.getErrorCode()).thenReturn(161);
+        doNothing().when(utils).handleRateLimitBreach(anyInt(), anyInt());
 
         String actual = underTest.follow();
 
-        InOrder inOrder = inOrder(followRepository, twitter);
+        InOrder inOrder = inOrder(followRepository, twitter, utils);
+        inOrder.verify(followRepository).findAll();
+        inOrder.verify(twitter).createFriendship(screenName);
+        inOrder.verify(utils).handleRateLimitBreach(anyInt(), anyInt());
+        inOrder.verify(followRepository).findAll();
+
+        verifyNoMoreInteractions(followRepository, twitter, utils);
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void follow_unhandledException_TwitterExceptionThrown() throws TwitterException {
+        String expected = "'1' Users remain to follow";
+
+        when(followRepository.findAll()).thenReturn(follow1List).thenReturn(follow1List);
+        when(twitter.createFriendship(screenName)).thenThrow(twitterException);
+        when(twitterException.getErrorCode()).thenReturn(9999);
+
+        String actual = underTest.follow();
+
+        InOrder inOrder = inOrder(followRepository, twitter, utils);
         inOrder.verify(followRepository).findAll();
         inOrder.verify(twitter).createFriendship(screenName);
         inOrder.verify(followRepository).findAll();

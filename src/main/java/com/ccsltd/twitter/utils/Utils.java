@@ -15,7 +15,7 @@ public class Utils {
 
     public static final int SLEEP_SECONDS = 60;
 
-    public static void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
+    public void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
         log.info("Rate limit count = {}, waiting {} seconds. total slept time = {}", rateLimitCount, SLEEP_SECONDS,
                 sleptForSecondsTotal);
 

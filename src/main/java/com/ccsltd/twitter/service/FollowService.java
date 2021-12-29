@@ -41,6 +41,7 @@ public class FollowService {
     private final FollowPendingRepository followPendingRepository;
     private final FollowIgnoreRepository followIgnoreRepository;
     private final EntityManager manager;
+    private final Utils utils;
 
     public String identifyUsersToFollow() {
         StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createUsersToFollow")
@@ -116,12 +117,13 @@ public class FollowService {
                     // User follow rate limit reached
                     case 161:
                         log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        Utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                        utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
                         sleptForSecondsTotal += Utils.SLEEP_SECONDS;
                         return;
 
                     default:
                         log.info("Unhandled error code '{}'", te.getErrorCode());
+                        return;
                     }
                 }
             }

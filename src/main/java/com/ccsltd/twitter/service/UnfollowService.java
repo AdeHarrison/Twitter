@@ -16,7 +16,6 @@ import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
 import com.ccsltd.twitter.repository.UnfollowRepository;
-import com.ccsltd.twitter.utils.Utils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -92,7 +91,7 @@ public class UnfollowService {
                         done = true;
                         break;
                     } else {
-                        Utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
+                        //                        Utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
                         sleptForSecondsTotal += SLEEP_SECONDS;
                     }
                 }
