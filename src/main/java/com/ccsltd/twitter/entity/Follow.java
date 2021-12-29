@@ -1,31 +1,26 @@
 package com.ccsltd.twitter.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@NamedStoredProcedureQuery(
-        name = "createUsersToFollow",
-        procedureName = "create_users_to_follow"
-)
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.NamedStoredProcedureQuery;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@NamedStoredProcedureQuery(name = "createUsersToFollow", procedureName = "create_users_to_follow")
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Builder
 @Entity
 public class Follow implements Serializable {
 
     @Id
-    @GeneratedValue
-    private Long id;
-
-    @Column
     private Long twitterId;
 
     @Column

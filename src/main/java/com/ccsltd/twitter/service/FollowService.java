@@ -15,7 +15,9 @@ import javax.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import com.ccsltd.twitter.entity.Follow;
+import com.ccsltd.twitter.entity.FollowIgnore;
 import com.ccsltd.twitter.entity.FollowPending;
+import com.ccsltd.twitter.repository.FollowIgnoreRepository;
 import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
@@ -31,10 +33,13 @@ import twitter4j.TwitterException;
 @Service
 public class FollowService {
 
+    public static final long EXPIRY_DAYS = 5L;
+
     private final Twitter twitter;
     private final FollowerRepository followerRepository;
     private final FollowRepository followRepository;
     private final FollowPendingRepository followPendingRepository;
+    private final FollowIgnoreRepository followIgnoreRepository;
     private final EntityManager manager;
 
     public String identifyUsersToFollow() {
@@ -53,7 +58,7 @@ public class FollowService {
 
     @Transactional
     public String follow() {
-        List<Follow> allToFollow = followRepository.findAll();
+        List<Follow> followList = followRepository.findAll();
 
         Consumer<Follow> createFriendship = user -> {
             String screenName = user.getScreenName();
@@ -85,21 +90,27 @@ public class FollowService {
                                 user.getTwitterId());
 
                         if (followPending.isPresent()) {
-                            LocalDateTime createdDate = Utils.convertDateToLocalDateTime(
-                                    followPending.get().getTimeStamp());
-                            LocalDateTime cutOffDate = LocalDateTime.now().minusDays(5L);
+                            LocalDateTime createdDate = followPending.get().getTimeStamp();
+                            LocalDateTime cutOffDate = LocalDateTime.now().minusDays(EXPIRY_DAYS);
 
                             if (createdDate.isBefore(cutOffDate)) {
+                                followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
 
+                                log.info("Already requested to follow '{}' and request date '{}' has expired",
+                                        screenName, createdDate);
+                            } else {
+                                log.info("Already requested to follow '{}' and request date '{}' is still active",
+                                        screenName, createdDate);
                             }
                         } else {
                             followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
+                            log.info("Already requested to follow '{}' and created new tracking record", screenName);
                         }
 
-                        followerRepository.deleteByScreenName(user.getScreenName());
-                        followRepository.deleteByScreenName(user.getScreenName());
+                        followRepository.deleteByScreenName(screenName);
+
+                        //     ????                   followerRepository.deleteByScreenName(user.getScreenName());
                         done = true;
-                        log.info("Already requested to follow '{}'", screenName);
                         return;
 
                     // User follow rate limit reached
@@ -116,7 +127,7 @@ public class FollowService {
             }
         };
 
-        allToFollow.forEach(createFriendship);
+        followList.forEach(createFriendship);
 
         String logMessage = format("'%s' Users remain to follow", followRepository.findAll().size());
 

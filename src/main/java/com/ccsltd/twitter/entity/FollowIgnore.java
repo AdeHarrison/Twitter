@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Entity
-public class FollowPending implements Serializable {
+public class FollowIgnore implements Serializable {
 
-    public FollowPending(Long twitterId, String screenName) {
+    public FollowIgnore(Long twitterId, String screenName) {
         this.twitterId = twitterId;
         this.screenName = screenName;
     }

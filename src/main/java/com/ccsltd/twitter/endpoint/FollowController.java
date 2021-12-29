@@ -20,7 +20,7 @@ public class FollowController {
         return followService.identifyUsersToFollow();
     }
 
-    @GetMapping(path = "/follow/follow")
+    @GetMapping(path = "/follow")
     public String follow() {
         return followService.follow();
     }
