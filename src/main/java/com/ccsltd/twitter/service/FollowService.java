@@ -1,7 +1,5 @@
 package com.ccsltd.twitter.service;
 
-import static java.lang.String.format;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -43,23 +41,22 @@ public class FollowService {
     private final EntityManager manager;
     private final Utils utils;
 
-    public String identifyUsersToFollow() {
+    public int identifyFollows() {
         StoredProcedureQuery followFunction = manager.createNamedStoredProcedureQuery("createUsersToFollow")
                 .registerStoredProcedureParameter("followCount", Integer.class, ParameterMode.OUT);
 
         followFunction.execute();
-        Integer followCount = (Integer) followFunction.getOutputParameterValue("followCount");
 
-        String logMessage = format("'%s' Users to Follow", followCount);
-
-        log.info(logMessage);
-
-        return logMessage;
+        return (int) followFunction.getOutputParameterValue("followCount");
     }
 
     @Transactional
-    public String follow() {
-        List<Follow> followList = followRepository.findAll();
+    public int follow(final int followLimit) {
+        List<Follow> allFollowList = followRepository.findAll();
+        int maxToFollow = allFollowList.size();
+        int actualToFollow = (maxToFollow >= followLimit ? followLimit : maxToFollow);
+
+        List<Follow> followList = allFollowList.subList(0, actualToFollow);
 
         Consumer<Follow> createFriendship = user -> {
             String screenName = user.getScreenName();
@@ -132,11 +129,7 @@ public class FollowService {
 
         followList.forEach(createFriendship);
 
-        String logMessage = format("'%s' Users remain to follow", followRepository.findAll().size());
-
-        log.info(logMessage);
-
-        return logMessage;
+        return followRepository.findAll().size();
     }
 }
 
