@@ -23,11 +23,15 @@ import org.springframework.stereotype.Service;
 
 import com.ccsltd.twitter.entity.Fixed;
 import com.ccsltd.twitter.entity.Follow;
+import com.ccsltd.twitter.entity.FollowIgnore;
+import com.ccsltd.twitter.entity.FollowPending;
 import com.ccsltd.twitter.entity.Follower;
 import com.ccsltd.twitter.entity.Friend;
 import com.ccsltd.twitter.entity.ProcessControl;
 import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.repository.FixedRepository;
+import com.ccsltd.twitter.repository.FollowIgnoreRepository;
+import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
 import com.ccsltd.twitter.repository.FriendRepository;
@@ -49,22 +53,28 @@ import twitter4j.User;
 public class TwitterService {
 
     public static final String FIXED_SER = "fixed_%s.ser";
-    public static final String FOLLOWER_SER = "followers_%s.ser";
-    public static final String FRIEND_SER = "friends_%s.ser";
     private static final String FOLLOW_SER = "follow_%s.ser";
+    private static final String FOLLOW_IGNORE_SER = "follow_ignore_%s.ser";
+    public static final String FOLLOW_PENDING_SER = "follow_pending%s.ser";
+    public static final String FOLLOWER_SER = "follower_%s.ser";
+    public static final String FRIEND_SER = "friends_%s.ser";
     private static final String PROCESS_CONTROL_SER = "process_control_%s.ser";
-
     private static final String UNFOLLOW_SER = "unfollow_%s.ser";
 
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
-    private final FollowerRepository followerRepository;
-    private final ProcessControlRepository processControlRepository;
-    private final FriendRepository friendRepository;
-    private final UnfollowRepository unfollowRepository;
     private final FollowRepository followRepository;
+    private final FollowIgnoreRepository followIgnoreRepository;
+    private final FollowPendingRepository followPendingRepository;
+    private final FollowerRepository followerRepository;
+    private final FriendRepository friendRepository;
+    private final ProcessControlRepository processControlRepository;
+    private final UnfollowRepository unfollowRepository;
 
     private final int SLEEP_SECONDS = 60;
+
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
+            .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault());
 
     public String initialise(String status) {
 
@@ -83,7 +93,7 @@ public class TwitterService {
             }
 
             List<Follower> followers = getFollowers();
-            serializeList(followers, createFileName(FOLLOWER_SER, "base"), false);
+            serializeList(followers, createFilename(FOLLOWER_SER, "base"), false);
 
             for (Follower follower : followers) {
                 try {
@@ -96,7 +106,7 @@ public class TwitterService {
             sleepForSeconds(SLEEP_SECONDS);
 
             List<Friend> friends = getFriends();
-            serializeList(friends, createFileName(FRIEND_SER, "base"), false);
+            serializeList(friends, createFilename(FRIEND_SER, "base"), false);
             friendRepository.saveAll(friends);
 
             processControlRepository.deleteById(1L);
@@ -294,32 +304,42 @@ public class TwitterService {
     }
 
     public String reset(String resetTo) {
-        String fixedFilename = createFileName(FIXED_SER, resetTo);
+        String fixedFilename = createFilename(FIXED_SER, resetTo);
         List<Fixed> fixedList = deserializeList(fixedFilename);
         fixedRepository.deleteAll();
         fixedRepository.saveAll(fixedList);
 
-        String followFilename = createFileName(FOLLOW_SER, resetTo);
+        String followFilename = createFilename(FOLLOW_SER, resetTo);
         List<Follow> followList = deserializeList(followFilename);
         followRepository.deleteAll();
         followRepository.saveAll(followList);
 
-        String followerFilename = createFileName(FOLLOWER_SER, resetTo);
+        String followIgnoreFilename = createFilename(FOLLOW_IGNORE_SER, resetTo);
+        List<FollowIgnore> followIgnoreList = deserializeList(followIgnoreFilename);
+        followIgnoreRepository.deleteAll();
+        followIgnoreRepository.saveAll(followIgnoreList);
+
+        String followPendingFilename = createFilename(FOLLOW_PENDING_SER, resetTo);
+        List<FollowPending> followPendingList = deserializeList(followPendingFilename);
+        followPendingRepository.deleteAll();
+        followPendingRepository.saveAll(followPendingList);
+
+        String followerFilename = createFilename(FOLLOWER_SER, resetTo);
         List<Follower> followerList = deserializeList(followerFilename);
         followerRepository.deleteAll();
         followerRepository.saveAll(followerList);
 
-        String friendFilename = createFileName(FRIEND_SER, resetTo);
+        String friendFilename = createFilename(FRIEND_SER, resetTo);
         List<Friend> friendList = deserializeList(friendFilename);
         friendRepository.deleteAll();
         friendRepository.saveAll(friendList);
 
-        String processControlFilename = createFileName(PROCESS_CONTROL_SER, resetTo);
+        String processControlFilename = createFilename(PROCESS_CONTROL_SER, resetTo);
         List<ProcessControl> processControlList = deserializeList(processControlFilename);
         processControlRepository.deleteAll();
         processControlRepository.saveAll(processControlList);
 
-        String unfollowFilename = createFileName(UNFOLLOW_SER, resetTo);
+        String unfollowFilename = createFilename(UNFOLLOW_SER, resetTo);
         List<Unfollow> unfollowList = deserializeList(unfollowFilename);
         unfollowRepository.deleteAll();
         unfollowRepository.saveAll(unfollowList);
@@ -347,6 +367,8 @@ public class TwitterService {
 
     public String snapshot(String snapshotTo) {
         String fixedFilename;
+        String followIgnoreFilename;
+        String followPendingFilename;
         String followFilename;
         String followerFilename;
         String friendFilename;
@@ -354,26 +376,29 @@ public class TwitterService {
         String unfollowFilename;
 
         if ("now".equals(snapshotTo)) {
-            fixedFilename = createNowFilename(FRIEND_SER);
-            followFilename = createNowFilename(FOLLOW_SER);
-            followerFilename = createNowFilename(FOLLOWER_SER);
-            friendFilename = createNowFilename(FRIEND_SER);
-            processControlFilename = createNowFilename(PROCESS_CONTROL_SER);
-            unfollowFilename = createNowFilename(UNFOLLOW_SER);
-        } else {
-            fixedFilename = createFileName(FIXED_SER, snapshotTo);
-            followFilename = createFileName(FOLLOW_SER, snapshotTo);
-            followerFilename = createFileName(FOLLOWER_SER, snapshotTo);
-            friendFilename = createFileName(FRIEND_SER, snapshotTo);
-            processControlFilename = createFileName(PROCESS_CONTROL_SER, snapshotTo);
-            unfollowFilename = createFileName(UNFOLLOW_SER, snapshotTo);
+            snapshotTo = formatter.format(Instant.now());
         }
+
+        fixedFilename = createFilename(FIXED_SER, snapshotTo);
+        followFilename = createFilename(FOLLOW_SER, snapshotTo);
+        followIgnoreFilename = createFilename(FOLLOW_IGNORE_SER, snapshotTo);
+        followPendingFilename = createFilename(FOLLOW_PENDING_SER, snapshotTo);
+        followerFilename = createFilename(FOLLOWER_SER, snapshotTo);
+        friendFilename = createFilename(FRIEND_SER, snapshotTo);
+        processControlFilename = createFilename(PROCESS_CONTROL_SER, snapshotTo);
+        unfollowFilename = createFilename(UNFOLLOW_SER, snapshotTo);
 
         List<Fixed> fixedList = fixedRepository.findAll();
         serializeList(fixedList, fixedFilename, false);
 
         List<Follow> followList = followRepository.findAll();
         serializeList(followList, followFilename, false);
+
+        List<FollowIgnore> followIgnoreList = followIgnoreRepository.findAll();
+        serializeList(followIgnoreList, followIgnoreFilename, false);
+
+        List<FollowPending> followPendingList = followPendingRepository.findAll();
+        serializeList(followPendingList, followPendingFilename, false);
 
         List<Follower> followerList = followerRepository.findAll();
         serializeList(followerList, followerFilename, false);
@@ -391,12 +416,16 @@ public class TwitterService {
         String logMessage = format(
             "'%s' Fixed serialized to '%s', " +
             "'%s' Follow serialized to '%s', " +
-            "'%s' Followers serialized to '%s', " +
-            "'%s' Friends serialized to '%s', " +
+            "'%s' Follow Ignore serialized to '%s', " +
+            "'%s' Follow Pending serialized to '%s', " +
+            "'%s' Follower serialized to '%s', " +
+            "'%s' Friend serialized to '%s', " +
             "'%s' Process Control serialized to '%s', " +
             "'%s' Unfollow serialized to '%s'",
             fixedList.size(), fixedFilename,
             followList.size(), followFilename,
+            followIgnoreList.size(), followIgnoreFilename,
+            followPendingList.size(), followPendingFilename,
             followerList.size(), followerFilename,
             friendList.size(), friendFilename,
             processControlList.size(), processControlFilename,
@@ -457,7 +486,7 @@ public class TwitterService {
         return followRepository.findAll().size() == 0;
     }
 
-    private String createFileName(String filenameFormat, String resetTo) {
+    private String createFilename(String filenameFormat, String resetTo) {
         return format(filenameFormat, resetTo);
     }
 
@@ -466,7 +495,7 @@ public class TwitterService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss").withLocale(Locale.getDefault())
                 .withZone(ZoneId.systemDefault());
 
-        return createFileName(filenameFormat, formatter.format(now));
+        return createFilename(filenameFormat, formatter.format(now));
     }
 
     private void serializeList(List<?> list, String fileName, boolean append) {

@@ -37,6 +37,12 @@
 --	FROM
 --		fixed f);
 
+INSERT
+	INTO
+	follow_ignore
+SELECT fr.twitter_id , fr.screen_name , fr.created_at 
+FROM
+	friend fr;
 
 
 
