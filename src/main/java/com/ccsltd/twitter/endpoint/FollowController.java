@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ccsltd.twitter.service.FollowService;
@@ -23,9 +24,7 @@ public class FollowController {
 
     @GetMapping(path = "/identify-follows")
     public String identifyFollows() {
-        int followCount = followService.identifyFollows();
-
-        String logMessage = format("'%s' Users to Follow", followCount);
+        String logMessage = format("'%s' Users to Follow", followService.identifyFollows());
 
         log.info(logMessage);
 
@@ -33,11 +32,8 @@ public class FollowController {
     }
 
     @GetMapping(path = "/follow")
-    public String follow() {
-        Integer remainToFollow = followService.follow(50);
-
-        //todo from param or application props?
-        String logMessage = format("'%s' User(s) remain to follow", remainToFollow);
+    public String follow(@RequestParam(name = "followLimit", required = false, defaultValue = "30") int followLimit) {
+        String logMessage = format("'%s' User(s) remain to follow", followService.follow(followLimit));
 
         log.info(logMessage);
 

@@ -33,3 +33,4 @@ build/
 .vscode/
 /src/main/resources/twitter4j.properties
 /.jpb/persistence-units.xml
+/unknown status bef reset to base/

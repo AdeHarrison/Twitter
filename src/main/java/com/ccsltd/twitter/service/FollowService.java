@@ -31,6 +31,10 @@ import twitter4j.TwitterException;
 @Service
 public class FollowService {
 
+    public static final int USER_NOT_FOUND = 108;
+    public static final int FOLLOW_ALREADY_REQUESTED = 160;
+    public static final int RATE_LIMIT_REACHED = 161;
+
     public static final long EXPIRY_DAYS = 5L;
 
     private final Twitter twitter;
@@ -51,7 +55,7 @@ public class FollowService {
     }
 
     @Transactional
-    public int follow(final int followLimit) {
+    public int follow(int followLimit) {
         List<Follow> allFollowList = followRepository.findAll();
         int maxToFollow = allFollowList.size();
         int actualToFollow = (maxToFollow >= followLimit ? followLimit : maxToFollow);
@@ -60,69 +64,57 @@ public class FollowService {
 
         Consumer<Follow> createFriendship = user -> {
             String screenName = user.getScreenName();
-            boolean done = false;
-            int rateLimitCount = 1;
-            int sleptForSecondsTotal = 0;
 
-            while (!done) {
-                try {
-                    twitter.createFriendship(screenName);
-                    followRepository.deleteByScreenName(user.getScreenName());
-                    done = true;
-                    log.info("followed '{}'", screenName);
-                } catch (TwitterException te) {
+            try {
+                twitter.createFriendship(screenName);
+                followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
+                followRepository.deleteByScreenName(screenName);
+                log.info("followed '{}'", screenName);
+                return;
+            } catch (TwitterException te) {
 
-                    switch (te.getErrorCode()) {
+                switch (te.getErrorCode()) {
 
-                    // User not found
-                    case 108:
-                        followerRepository.deleteByScreenName(user.getScreenName());
-                        followRepository.deleteByScreenName(user.getScreenName());
-                        followIgnoreRepository.deleteByScreenName(user.getScreenName());
-                        done = true;
-                        log.info("User doesn't exist '{}'", screenName);
-                        return;
+                case USER_NOT_FOUND:
+                    followerRepository.deleteByScreenName(screenName);
+                    followRepository.deleteByScreenName(screenName);
+                    followIgnoreRepository.deleteByScreenName(screenName);
+                    log.info("User doesn't exist '{}'", screenName);
+                    return;
 
-                    // User followed already requested
-                    case 160:
-                        Optional<FollowPending> followPending = followPendingRepository.findByTwitterId(
-                                user.getTwitterId());
+                case FOLLOW_ALREADY_REQUESTED:
+                    Optional<FollowPending> followPending = followPendingRepository.findByTwitterId(
+                            user.getTwitterId());
 
-                        if (followPending.isPresent()) {
-                            LocalDateTime createdDate = followPending.get().getTimeStamp();
-                            LocalDateTime cutOffDate = LocalDateTime.now().minusDays(EXPIRY_DAYS);
+                    if (followPending.isPresent()) {
+                        LocalDateTime createdDate = followPending.get().getTimeStamp();
+                        LocalDateTime cutOffDate = LocalDateTime.now().minusDays(EXPIRY_DAYS);
 
-                            if (createdDate.isBefore(cutOffDate)) {
-                                followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
+                        if (createdDate.isBefore(cutOffDate)) {
+                            followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
 
-                                log.info("Already requested to follow '{}' and request date '{}' has expired",
-                                        screenName, createdDate);
-                            } else {
-                                log.info("Already requested to follow '{}' and request date '{}' is still active",
-                                        screenName, createdDate);
-                            }
+                            log.info("Already requested to follow '{}' and request date '{}' has expired", screenName,
+                                    createdDate);
                         } else {
-                            followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
-                            log.info("Already requested to follow '{}' and created new tracking record", screenName);
+                            log.info("Already requested to follow '{}' and request date '{}' is still active",
+                                    screenName, createdDate);
                         }
-
-                        followRepository.deleteByScreenName(screenName);
-
-                        //     ????                   followerRepository.deleteByScreenName(user.getScreenName());
-                        done = true;
-                        return;
-
-                    // User follow rate limit reached
-                    case 161:
-                        log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        utils.handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
-                        sleptForSecondsTotal += Utils.SLEEP_SECONDS;
-                        return;
-
-                    default:
-                        log.info("Unhandled error code '{}'", te.getErrorCode());
-                        return;
+                    } else {
+                        followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
+                        log.info("Already requested to follow '{}' and created new tracking record", screenName);
                     }
+
+                    followRepository.deleteByScreenName(screenName);
+
+                    return;
+
+                case RATE_LIMIT_REACHED:
+                    log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                    return;
+
+                default:
+                    log.info("Unhandled error code '{}'", te.getErrorCode());
+                    return;
                 }
             }
         };
