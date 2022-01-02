@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Entity
-public class FollowIgnore implements Serializable {
-    //todo rename to Followed
-    public FollowIgnore(Long twitterId, String screenName) {
+public class Unfollowed implements Serializable {
+
+    public Unfollowed(Long twitterId, String screenName) {
         this.twitterId = twitterId;
         this.screenName = screenName;
     }
