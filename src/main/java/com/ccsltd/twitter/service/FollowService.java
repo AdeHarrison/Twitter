@@ -1,5 +1,7 @@
 package com.ccsltd.twitter.service;
 
+import static com.ccsltd.twitter.utils.Utils.sleepForSeconds;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -110,6 +112,7 @@ public class FollowService {
 
                 case RATE_LIMIT_REACHED:
                     log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
+                    sleepForSeconds(5);
                     return;
 
                 default:

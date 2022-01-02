@@ -35,39 +35,17 @@ public class UnfollowService {
 
     private final int SLEEP_SECONDS = 60;
 
-    public String identifyUsersToUnfollow() {
-
-        if (!checkSafeToUnfollow()) {
-            String logMessage = format("'%s' Users must be followed first", followRepository.findAll().size());
-
-            log.info(logMessage);
-
-            return logMessage;
-        }
-
+    public int identifyUnfollows() {
         StoredProcedureQuery unfollowFunction = manager.createNamedStoredProcedureQuery("createUsersToUnfollow")
                 .registerStoredProcedureParameter("followCount", Integer.class, ParameterMode.OUT);
 
         unfollowFunction.execute();
-        Integer unfollowCount = (Integer) unfollowFunction.getOutputParameterValue("followCount");
 
-        String logMessage = format("'%s' Users to Unfollow", unfollowCount);
-
-        log.info(logMessage);
-
-        return logMessage;
+        return (int) unfollowFunction.getOutputParameterValue("followCount");
     }
 
     @Transactional
     public String unfollow() {
-        if (!checkSafeToUnfollow()) {
-            String logMessage = format("'%s' Users must be followed first", followRepository.findAll().size());
-
-            log.info(logMessage);
-
-            return logMessage;
-        }
-
         List<Unfollow> allToUnfollow = unfollowRepository.findAll();
 
         Consumer<Unfollow> unfollowFriend = user -> {

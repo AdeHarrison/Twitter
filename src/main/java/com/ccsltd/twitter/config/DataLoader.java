@@ -1,7 +1,5 @@
 package com.ccsltd.twitter.config;
 
-import java.util.List;
-
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -20,11 +18,9 @@ public class DataLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        List<Fixed> fixedList = fixedRepository.findAll();
 
-        if (fixedList.size() == 0) {
-
-            Long id = 0l;
+        if (fixedRepository.findAll().size() == 0) {
+            Long id = 0L;
 
             //TODO use opencsv from file?
             insertFixed(id++, 1268497715496960001L, "Lee Rigby Foundation", "FoundationRigby");

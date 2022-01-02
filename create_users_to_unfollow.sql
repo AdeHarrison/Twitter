@@ -5,23 +5,28 @@ DECLARE
 	total integer;
 
 BEGIN
--- Work out ALL users to unfollow in several steps	
--- 1. Copy all who I follow and add a flag column
-DROP TABLE IF EXISTS step_1_all_who_i_follow CASCADE;
+	
+-- 1. Select ALL users that I follow (friends)
+DROP TABLE IF EXISTS tmp_who_i_follow CASCADE;
 
-CREATE TABLE step_1_all_who_i_follow AS TABLE friend ;
+CREATE TABLE tmp_who_i_follow AS TABLE friend ;
 
-ALTER TABLE step_1_all_who_i_follow ADD COLUMN keep VARCHAR(1);
--- Next, work out and delete all friends I want to unfollow
+ALTER TABLE tmp_who_i_follow ADD COLUMN unfollow boolean DEFAULT FALSE;
+
 -- 2. Delete ALL users that do not match interested terms
 UPDATE
-	step_1_all_who_i_follow
+	tmp_who_i_follow
 SET
-	keep = 'y'
+	unfollow = TRUE 
 WHERE
+NOT(
 	lower(description) LIKE '%brexit%'
 	OR (lower(description) LIKE '%english%'
 		OR lower(name) LIKE '%english%')
+	OR (lower(description) LIKE '%gb news%'
+		OR lower(name) LIKE '%gb news%')
+	OR (lower(description) LIKE '%england%'
+		OR lower(name) LIKE '%england%')
 	OR (lower(description) LIKE '%brit%'
 		OR lower(name) LIKE '%brit%')
 	OR (lower(description) LIKE '%army%'
@@ -54,14 +59,20 @@ WHERE
 		OR lower(name) LIKE '%cenotaph%')
 	OR (lower(description) LIKE '%royalist%'
 		OR lower(name) LIKE '%royalist%')
-	OR (lower(description) LIKE '%gb news%'
-		OR lower(name) LIKE '%gb news%')
+	OR (lower(description) LIKE '%reform%'
+		OR lower(name) LIKE '%reform%')
 	OR (lower(description) LIKE '%gbnew%'
 		OR lower(name) LIKE '%gbnew%')
+	OR (lower(description) LIKE '%woke%'
+		OR lower(name) LIKE '%woke%')
+	OR (lower(description) LIKE '%cancel%'
+		OR lower(name) LIKE '%cancel%')
 	OR (lower(description) LIKE '%blighty%'
 		OR lower(name) LIKE '%blighty%')
 	OR (lower(description) LIKE '%queen%'
 		OR lower(name) LIKE '%queen%')
+	OR (lower(description) LIKE '%lgb%'
+		OR lower(name) LIKE '%lgb%')
 	OR (lower(description) LIKE '%defund%'
 		OR lower(name) LIKE '%defund%')
 	OR (lower(description) LIKE '%democracy%'
@@ -96,6 +107,16 @@ WHERE
 		OR lower(name) LIKE '%jew%')
 	OR (lower(description) LIKE '%speech%'
 		OR lower(name) LIKE '%speech%')
+	OR (lower(description) LIKE '%regiment%'
+		OR lower(name) LIKE '%regiment%')
+	OR (lower(description) LIKE '%whitelivesmatter%'
+		OR lower(name) LIKE '%whitelivesmatter%')
+	OR (lower(description) LIKE '%leave%'
+		OR lower(name) LIKE '%leave%')
+			OR (lower(description) LIKE '%offended%'
+		OR lower(name) LIKE '%offended%')
+	OR (lower(description) LIKE '%hate eu%'
+		OR lower(name) LIKE '%hate eu%')
 	OR (description = ''
 		OR name = '')
 	OR (lower(LOCATION) LIKE '%england%'
@@ -110,38 +131,52 @@ WHERE
 		OR name LIKE '%🇬🇧%')
 	OR (description LIKE '%🇬🇬%'
 		OR name LIKE '%🇬🇬%')
+	OR (description LIKE '%🇺🇸%'
+		OR name LIKE '%🇺🇸%')
+	OR (description LIKE '%🇦🇺%'
+		OR name LIKE '%🇦🇺%')
+	OR (description LIKE '%🇨🇦%'
+		OR name LIKE '%🇨🇦%')
 	OR (description LIKE '%󠁧󠁢󠁥󠁮󠁧󠁿🇮🇱%'
-		OR name LIKE '%󠁧󠁢󠁥󠁮󠁧󠁿🇮🇱%');
+		OR name LIKE '%󠁧󠁢󠁥󠁮󠁧󠁿🇮🇱%'))
+AND NOT unfollow ;
 
-UPDATE
-	step_1_all_who_i_follow
-SET
-	keep = 'y'
-WHERE
-	protected;
+--SELECT * FROM tmp_who_i_follow twif WHERE twif.description LIKE '%🇬🇬%' 
+--OR twif.description LIKE '%🇦🇺%'
+--OR twif.description LIKE '%🇬🇧%'
+--OR twif.description LIKE '%🇮🇱%'
+--OR twif.description LIKE '%🇺🇸%'
 
-UPDATE
-	step_1_all_who_i_follow
-SET
-	keep = 'y'
-WHERE
-	(followers_count < 250
-		AND friends_count < 250);
+--3. Unfollow any with limited followers/friends (may have been set to TRUE using terms above) 
+--UPDATE
+--	tmp_who_i_follow
+--SET
+--	unfollow = FALSE
+--WHERE
+--	(followers_count > 200
+--		AND friends_count > 200)
+--	AND NOT unfollow ;
 
-UPDATE
-	step_1_all_who_i_follow
-SET
-	keep = 'y'
-WHERE
-	ascii(description) > 122;
+--SELECT * FROM tmp_who_i_follow twif WHERE 	
+--followers_count < 500
+--AND friends_count < 500
+--	AND unfollow ;
 
-UPDATE
-	step_1_all_who_i_follow
-SET
-	keep = 'y'
-WHERE
-	(lower(description) LIKE '%lgb%'
-		OR lower(name) LIKE '%lgb%');
+
+--UPDATE
+--	step_1_all_who_i_follow
+--SET
+--	keep = 'y'
+--WHERE
+--	ascii(description) > 122;
+--
+--UPDATE
+--	step_1_all_who_i_follow
+--SET
+--	keep = 'y'
+--WHERE
+--	(lower(description) LIKE '%lgb%'
+--		OR lower(name) LIKE '%lgb%');
 
 DELETE
 FROM

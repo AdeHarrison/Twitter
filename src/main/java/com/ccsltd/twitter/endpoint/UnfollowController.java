@@ -1,5 +1,9 @@
 package com.ccsltd.twitter.endpoint;
 
+import static java.lang.String.format;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,11 +17,17 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping(path = "unfollow")
 public class UnfollowController {
 
+    private Logger log = LoggerFactory.getLogger(UnfollowController.class);
+
     private final UnfollowService unfollowService;
 
-    @GetMapping(path = "/identify-unfollowers")
-    public String identifyUnfollowers() {
-        return unfollowService.identifyUsersToUnfollow();
+    @GetMapping(path = "/identify-unfollows")
+    public String identifyUnfollows() {
+        String logMessage = format("'%s' Users to Unfollow", unfollowService.identifyUnfollows());
+
+        log.info(logMessage);
+
+        return logMessage;
     }
 
     @GetMapping(path = "/unfollow")
