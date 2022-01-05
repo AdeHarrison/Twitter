@@ -141,45 +141,6 @@ NOT(
 		OR name LIKE '%󠁧󠁢󠁥󠁮󠁧󠁿🇮🇱%'))
 AND NOT unfollow ;
 
---SELECT * FROM tmp_who_i_follow twif WHERE twif.twitter_id IN 
---(SELECT uf.twitter_id FROM unfollowed uf); 
---SELECT * FROM tmp_who_i_follow twif WHERE twif.description LIKE '%🇬🇬%' 
---OR twif.description LIKE '%🇦🇺%'
---OR twif.description LIKE '%🇬🇧%'
---OR twif.description LIKE '%🇮🇱%'
---OR twif.description LIKE '%🇺🇸%'
-
---3. Unfollow any with limited followers/friends (may have been set to TRUE using terms above) 
---UPDATE
---	tmp_who_i_follow
---SET
---	unfollow = FALSE
---WHERE
---	(followers_count > 200
---		AND friends_count > 200)
---	AND NOT unfollow ;
-
---SELECT * FROM tmp_who_i_follow twif WHERE 	
---followers_count < 500
---AND friends_count < 500
---	AND unfollow ;
-
-
---UPDATE
---	step_1_all_who_i_follow
---SET
---	keep = 'y'
---WHERE
---	ascii(description) > 122;
---
---UPDATE
---	step_1_all_who_i_follow
---SET
---	keep = 'y'
---WHERE
---	(lower(description) LIKE '%lgb%'
---		OR lower(name) LIKE '%lgb%');
-
 DELETE
 FROM
 	unfollow ;
