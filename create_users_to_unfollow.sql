@@ -141,6 +141,8 @@ NOT(
 		OR name LIKE '%󠁧󠁢󠁥󠁮󠁧󠁿🇮🇱%'))
 AND NOT unfollow ;
 
+--SELECT * FROM tmp_who_i_follow twif WHERE twif.twitter_id IN 
+--(SELECT uf.twitter_id FROM unfollowed uf); 
 --SELECT * FROM tmp_who_i_follow twif WHERE twif.description LIKE '%🇬🇬%' 
 --OR twif.description LIKE '%🇦🇺%'
 --OR twif.description LIKE '%🇬🇧%'
@@ -194,9 +196,9 @@ SELECT
 	screen_name,
 	description
 FROM
-	step_1_all_who_i_follow
+	tmp_who_i_follow
 WHERE
-	keep IS NULL;
+	unfollow;
 
 SELECT
 	count(*)

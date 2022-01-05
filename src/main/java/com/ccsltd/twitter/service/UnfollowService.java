@@ -59,8 +59,8 @@ public class UnfollowService {
                 unfollowedRepository.save(new Unfollowed(user.getTwitterId(), screenName));
                 friendRepository.deleteByScreenName(screenName);
                 unfollowRepository.deleteByScreenName(screenName);
-
                 log.info("unfollowed '{}' ", screenName);
+                return;
             } catch (TwitterException te) {
 
                 switch (te.getErrorCode()) {
