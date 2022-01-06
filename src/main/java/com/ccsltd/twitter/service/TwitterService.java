@@ -226,6 +226,7 @@ public class TwitterService {
 
                     if (!user.isPresent()) {
                         newUsers.add(id);
+                        log.info("Identified new follower ID '{}'", id);
                     }
                 }
             } catch (TwitterException e) {
@@ -277,6 +278,7 @@ public class TwitterService {
 
                     if (!user.isPresent()) {
                         newUsers.add(id);
+                        log.info("Identified new friend ID '{}'", id);
                     }
                 }
             } catch (TwitterException e) {

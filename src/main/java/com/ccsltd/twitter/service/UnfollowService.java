@@ -1,25 +1,25 @@
 package com.ccsltd.twitter.service;
 
-import java.util.List;
-import java.util.function.Consumer;
-
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.StoredProcedureQuery;
-import javax.transaction.Transactional;
-
-import org.springframework.stereotype.Service;
-
 import com.ccsltd.twitter.entity.Unfollow;
 import com.ccsltd.twitter.entity.Unfollowed;
 import com.ccsltd.twitter.repository.FriendRepository;
 import com.ccsltd.twitter.repository.UnfollowRepository;
 import com.ccsltd.twitter.repository.UnfollowedRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+import javax.transaction.Transactional;
+import java.util.List;
+import java.util.function.Consumer;
+
+import static com.ccsltd.twitter.service.Constant.INVALID_TOKEN;
+import static com.ccsltd.twitter.service.Constant.RESOURCE_NOT_FOUND;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -65,14 +65,18 @@ public class UnfollowService {
 
                 switch (te.getErrorCode()) {
 
-                case 34:
-                    unfollowRepository.deleteByScreenName(screenName);
-                    friendRepository.deleteByScreenName(screenName);
-                    return;
+                    case INVALID_TOKEN:
+                        log.info("Invalid Token");
+                        return;
 
-                default:
-                    log.info("Unhandled error code '{}'", te.getErrorCode());
-                    return;
+                    case RESOURCE_NOT_FOUND:
+                        unfollowRepository.deleteByScreenName(screenName);
+                        friendRepository.deleteByScreenName(screenName);
+                        return;
+
+                    default:
+                        log.info("Unhandled error code '{}'", te.getErrorCode());
+                        return;
                 }
             }
         };
