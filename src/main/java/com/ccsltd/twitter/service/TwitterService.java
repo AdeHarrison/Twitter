@@ -366,7 +366,7 @@ public class TwitterService {
                         "'%s' Follower deserialized from '%s', " +
                         "'%s' Friend deserialized from '%s', " +
                         "'%s' Process Control deserialized from '%s', " +
-                        "'%s' Unfollow deserialized from '%s'",
+                        "'%s' Unfollow deserialized from '%s'"+
                 "'%s' Unfollowed deserialized from '%s'",
                 fixedList.size(), fixedFilename,
                 followList.size(), followFilename,
@@ -445,7 +445,7 @@ public class TwitterService {
             "'%s' Follower serialized to '%s', " +
             "'%s' Friend serialized to '%s', " +
             "'%s' Process Control serialized to '%s', " +
-            "'%s' Unfollow serialized to '%s'",
+            "'%s' Unfollow serialized to '%s'" +
             "'%s' Unfollowed serialized to '%s'",
             fixedList.size(), fixedFilename,
             followList.size(), followFilename,
