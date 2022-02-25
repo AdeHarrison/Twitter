@@ -65,6 +65,7 @@ public class FollowService {
                 twitter.createFriendship(screenName);
                 followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
                 followRepository.deleteByScreenName(screenName);
+                sleepForSeconds(1);
                 log.info("followed '{}'", screenName);
                 return;
             } catch (TwitterException te) {

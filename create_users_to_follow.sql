@@ -10,7 +10,7 @@ DELETE
 FROM
 	follow;
 
--- 1. Select ALL users that follow me and i don't follow
+-- 1. Select ALL users that follow me and i don't follow i.e followers not yet friends
 INSERT
 	INTO
 	follow
