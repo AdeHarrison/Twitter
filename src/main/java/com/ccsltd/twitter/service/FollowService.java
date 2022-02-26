@@ -1,9 +1,9 @@
 package com.ccsltd.twitter.service;
 
 import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.FollowIgnore;
+import com.ccsltd.twitter.entity.Followed;
 import com.ccsltd.twitter.entity.FollowPending;
-import com.ccsltd.twitter.repository.FollowIgnoreRepository;
+import com.ccsltd.twitter.repository.FollowedRepository;
 import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
@@ -37,7 +37,7 @@ public class FollowService {
     private final FollowerRepository followerRepository;
     private final FollowRepository followRepository;
     private final FollowPendingRepository followPendingRepository;
-    private final FollowIgnoreRepository followIgnoreRepository;
+    private final FollowedRepository followedRepository;
     private final EntityManager manager;
     private final Utils utils;
 
@@ -63,7 +63,7 @@ public class FollowService {
 
             try {
                 twitter.createFriendship(screenName);
-                followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
+                followedRepository.save(new Followed(user.getTwitterId(), screenName));
                 followRepository.deleteByScreenName(screenName);
                 sleepForSeconds(1);
                 log.info("followed '{}'", screenName);
@@ -79,7 +79,7 @@ public class FollowService {
                     case USER_NOT_FOUND:
                         followerRepository.deleteByScreenName(screenName);
                         followRepository.deleteByScreenName(screenName);
-                        followIgnoreRepository.deleteByScreenName(screenName);
+                        followedRepository.deleteByScreenName(screenName);
                         log.info("User doesn't exist '{}'", screenName);
                         return;
 
@@ -92,7 +92,7 @@ public class FollowService {
                             LocalDateTime cutOffDate = LocalDateTime.now().minusDays(EXPIRY_DAYS);
 
                             if (createdDate.isBefore(cutOffDate)) {
-                                followIgnoreRepository.save(new FollowIgnore(user.getTwitterId(), screenName));
+                                followedRepository.save(new Followed(user.getTwitterId(), screenName));
 
                                 log.info("Already requested to follow '{}' and request date '{}' has expired", screenName,
                                         createdDate);

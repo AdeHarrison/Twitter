@@ -1,53 +1,22 @@
 package com.ccsltd.twitter.service;
 
-import static java.lang.String.format;
-import static java.lang.System.getenv;
+import com.ccsltd.twitter.entity.*;
+import com.ccsltd.twitter.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import twitter4j.*;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.springframework.stereotype.Service;
-
-import com.ccsltd.twitter.entity.Fixed;
-import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.FollowIgnore;
-import com.ccsltd.twitter.entity.FollowPending;
-import com.ccsltd.twitter.entity.Follower;
-import com.ccsltd.twitter.entity.Friend;
-import com.ccsltd.twitter.entity.ProcessControl;
-import com.ccsltd.twitter.entity.Unfollow;
-import com.ccsltd.twitter.entity.Unfollowed;
-import com.ccsltd.twitter.repository.FixedRepository;
-import com.ccsltd.twitter.repository.FollowIgnoreRepository;
-import com.ccsltd.twitter.repository.FollowPendingRepository;
-import com.ccsltd.twitter.repository.FollowRepository;
-import com.ccsltd.twitter.repository.FollowerRepository;
-import com.ccsltd.twitter.repository.FriendRepository;
-import com.ccsltd.twitter.repository.ProcessControlRepository;
-import com.ccsltd.twitter.repository.UnfollowRepository;
-import com.ccsltd.twitter.repository.UnfollowedRepository;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import twitter4j.IDs;
-import twitter4j.PagableResponseList;
-import twitter4j.ResponseList;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.User;
+import static java.lang.String.format;
+import static java.lang.System.getenv;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -56,7 +25,7 @@ public class TwitterService {
 
     public static final String FIXED_SER = "fixed_%s.ser";
     private static final String FOLLOW_SER = "follow_%s.ser";
-    private static final String FOLLOW_IGNORE_SER = "follow_ignore_%s.ser";
+    private static final String FOLLOWED_SER = "followed_%s.ser";
     public static final String FOLLOW_PENDING_SER = "follow_pending%s.ser";
     public static final String FOLLOWER_SER = "follower_%s.ser";
     public static final String FRIEND_SER = "friends_%s.ser";
@@ -67,7 +36,7 @@ public class TwitterService {
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
     private final FollowRepository followRepository;
-    private final FollowIgnoreRepository followIgnoreRepository;
+    private final FollowedRepository followedRepository;
     private final FollowPendingRepository followPendingRepository;
     private final FollowerRepository followerRepository;
     private final FriendRepository friendRepository;
@@ -248,10 +217,15 @@ public class TwitterService {
 
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
                 usersToAdd.forEach(v -> followerRepository.save(
-                        Follower.builder().twitterId(v.getId()).screenName(v.getScreenName()).name(v.getName())
-                                .description(v.getDescription()).location(v.getLocation())
-                                .followersCount(v.getFollowersCount()).friendsCount(v.getFriendsCount())
-                                .protectedTweets(v.isProtected()).build()));
+                        Follower.builder().twitterId(v.getId())
+                                .screenName(v.getScreenName())
+                                .name(v.getName())
+                                .description(v.getDescription())
+                                .location(v.getLocation())
+                                .followersCount(v.getFollowersCount())
+                                .friendsCount(v.getFriendsCount())
+                                .protectedTweets(v.isProtected())
+                                .build()));
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
@@ -297,10 +271,16 @@ public class TwitterService {
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
 
                 usersToAdd.forEach(v -> friendRepository.save(
-                        Friend.builder().twitterId(v.getId()).screenName(v.getScreenName()).name(v.getName())
-                                .description(v.getDescription()).location(v.getLocation())
-                                .followersCount(v.getFollowersCount()).friendsCount(v.getFriendsCount())
-                                .protectedTweets((v.isProtected())).build()));
+                        Friend.builder()
+                                .twitterId(v.getId())
+                                .screenName(v.getScreenName())
+                                .name(v.getName())
+                                .description(v.getDescription())
+                                .location(v.getLocation())
+                                .followersCount(v.getFollowersCount())
+                                .friendsCount(v.getFriendsCount())
+                                .protectedTweets((v.isProtected()))
+                                .build()));
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
@@ -312,7 +292,7 @@ public class TwitterService {
     public String reset(String resetTo) {
         String fixedFilename = createFilename(FIXED_SER, resetTo);
         String followFilename = createFilename(FOLLOW_SER, resetTo);
-        String followIgnoreFilename = createFilename(FOLLOW_IGNORE_SER, resetTo);
+        String followedFilename = createFilename(FOLLOWED_SER, resetTo);
         String followPendingFilename = createFilename(FOLLOW_PENDING_SER, resetTo);
         String followerFilename = createFilename(FOLLOWER_SER, resetTo);
         String friendFilename = createFilename(FRIEND_SER, resetTo);
@@ -328,9 +308,9 @@ public class TwitterService {
         followRepository.deleteAll();
         followRepository.saveAll(followList);
 
-        List<FollowIgnore> followIgnoreList = deserializeList(followIgnoreFilename);
-        followIgnoreRepository.deleteAll();
-        followIgnoreRepository.saveAll(followIgnoreList);
+        List<Followed> followedList = deserializeList(followedFilename);
+        followedRepository.deleteAll();
+        followedRepository.saveAll(followedList);
 
         List<FollowPending> followPendingList = deserializeList(followPendingFilename);
         followPendingRepository.deleteAll();
@@ -361,7 +341,7 @@ public class TwitterService {
         String logMessage = format(
                 "'%s' Fixed deserialized from '%s', " +
                         "'%s' Follow deserialized from '%s', " +
-                        "'%s' Follow Ignore deserialized from '%s', " +
+                        "'%s' Followed deserialized from '%s', " +
                         "'%s' Follow Pending deserialized from '%s', " +
                         "'%s' Follower deserialized from '%s', " +
                         "'%s' Friend deserialized from '%s', " +
@@ -370,7 +350,7 @@ public class TwitterService {
                 "'%s' Unfollowed deserialized from '%s'",
                 fixedList.size(), fixedFilename,
                 followList.size(), followFilename,
-                followIgnoreList.size(), followIgnoreFilename,
+                followedList.size(), followedFilename,
                 followPendingList.size(), followPendingFilename,
                 followerList.size(), followerFilename,
                 friendList.size(), friendFilename,
@@ -387,7 +367,7 @@ public class TwitterService {
     public String snapshot(String snapshotTo) {
         String fixedFilename;
         String followFilename;
-        String followIgnoreFilename;
+        String followedFilename;
         String followPendingFilename;
         String followerFilename;
         String friendFilename;
@@ -401,7 +381,7 @@ public class TwitterService {
 
         fixedFilename = createFilename(FIXED_SER, snapshotTo);
         followFilename = createFilename(FOLLOW_SER, snapshotTo);
-        followIgnoreFilename = createFilename(FOLLOW_IGNORE_SER, snapshotTo);
+        followedFilename = createFilename(FOLLOWED_SER, snapshotTo);
         followPendingFilename = createFilename(FOLLOW_PENDING_SER, snapshotTo);
         followerFilename = createFilename(FOLLOWER_SER, snapshotTo);
         friendFilename = createFilename(FRIEND_SER, snapshotTo);
@@ -415,8 +395,8 @@ public class TwitterService {
         List<Follow> followList = followRepository.findAll();
         serializeList(followList, followFilename, false);
 
-        List<FollowIgnore> followIgnoreList = followIgnoreRepository.findAll();
-        serializeList(followIgnoreList, followIgnoreFilename, false);
+        List<Followed> followedList = followedRepository.findAll();
+        serializeList(followedList, followedFilename, false);
 
         List<FollowPending> followPendingList = followPendingRepository.findAll();
         serializeList(followPendingList, followPendingFilename, false);
@@ -440,7 +420,7 @@ public class TwitterService {
         String logMessage = format(
             "'%s' Fixed serialized to '%s', " +
             "'%s' Follow serialized to '%s', " +
-            "'%s' Follow Ignore serialized to '%s', " +
+            "'%s' Followed serialized to '%s', " +
             "'%s' Follow Pending serialized to '%s', " +
             "'%s' Follower serialized to '%s', " +
             "'%s' Friend serialized to '%s', " +
@@ -449,7 +429,7 @@ public class TwitterService {
             "'%s' Unfollowed serialized to '%s'",
             fixedList.size(), fixedFilename,
             followList.size(), followFilename,
-            followIgnoreList.size(), followIgnoreFilename,
+            followedList.size(), followedFilename,
             followPendingList.size(), followPendingFilename,
             followerList.size(), followerFilename,
             friendList.size(), friendFilename,

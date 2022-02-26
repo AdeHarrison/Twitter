@@ -6,9 +6,9 @@ DECLARE
 
 BEGIN
 
-DELETE
-FROM
-	follow;
+--DELETE
+--FROM
+--	follow;
 
 -- 1. Select ALL users that follow me and i don't follow i.e followers not yet friends
 INSERT
@@ -58,10 +58,10 @@ WHERE
 		SELECT
 			fi.twitter_id
 		FROM
-			follow_ignore fi
+			followed fi
 	);
 	
--- 3. Return number of users to follow
+-- 5. Return number of users to follow
 SELECT
 	COUNT(*)
     INTO

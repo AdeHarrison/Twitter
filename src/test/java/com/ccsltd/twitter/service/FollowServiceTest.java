@@ -26,9 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ccsltd.twitter.entity.Follow;
-import com.ccsltd.twitter.entity.FollowIgnore;
+import com.ccsltd.twitter.entity.Followed;
 import com.ccsltd.twitter.entity.FollowPending;
-import com.ccsltd.twitter.repository.FollowIgnoreRepository;
+import com.ccsltd.twitter.repository.FollowedRepository;
 import com.ccsltd.twitter.repository.FollowPendingRepository;
 import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
@@ -54,7 +54,7 @@ class FollowServiceTest {
     private FollowPendingRepository followPendingRepository;
 
     @Mock
-    private FollowIgnoreRepository followIgnoreRepository;
+    private FollowedRepository followedRepository;
 
     @Mock
     private EntityManager manager;
@@ -170,18 +170,18 @@ class FollowServiceTest {
         when(twitterException.getErrorCode()).thenReturn(108);
         doNothing().when(followerRepository).deleteByScreenName(anyString());
         doNothing().when(followRepository).deleteByScreenName(anyString());
-        doNothing().when(followIgnoreRepository).deleteByScreenName(anyString());
+        doNothing().when(followedRepository).deleteByScreenName(anyString());
 
         int actual = underTest.follow(1);
 
-        InOrder inOrder = inOrder(followRepository, twitter, followerRepository, followIgnoreRepository);
+        InOrder inOrder = inOrder(followRepository, twitter, followerRepository, followedRepository);
         inOrder.verify(followRepository).findAll();
         inOrder.verify(twitter).createFriendship(anyString());
         inOrder.verify(followerRepository).deleteByScreenName(anyString());
-        inOrder.verify(followIgnoreRepository).deleteByScreenName(anyString());
+        inOrder.verify(followedRepository).deleteByScreenName(anyString());
         inOrder.verify(followRepository).findAll();
 
-        verifyNoMoreInteractions(followRepository, twitter, followerRepository, followIgnoreRepository);
+        verifyNoMoreInteractions(followRepository, twitter, followerRepository, followedRepository);
 
         assertEquals(actual, expected);
     }
@@ -253,15 +253,15 @@ class FollowServiceTest {
 
         int actual = underTest.follow(1);
 
-        InOrder inOrder = inOrder(followRepository, twitter, followPendingRepository, followIgnoreRepository);
+        InOrder inOrder = inOrder(followRepository, twitter, followPendingRepository, followedRepository);
         inOrder.verify(followRepository).findAll();
         inOrder.verify(twitter).createFriendship(anyString());
         inOrder.verify(followPendingRepository).findByTwitterId(anyLong());
-        inOrder.verify(followIgnoreRepository).save(any(FollowIgnore.class));
+        inOrder.verify(followedRepository).save(any(Followed.class));
         inOrder.verify(followRepository).deleteByScreenName(anyString());
         inOrder.verify(followRepository).findAll();
 
-        verifyNoMoreInteractions(followRepository, twitter, followPendingRepository, followIgnoreRepository);
+        verifyNoMoreInteractions(followRepository, twitter, followPendingRepository, followedRepository);
 
         assertEquals(actual, expected);
     }
