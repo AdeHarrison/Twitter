@@ -6,14 +6,14 @@ DECLARE
 
 BEGIN
 
---DELETE
---FROM
---	follow;
+DELETE
+FROM
+	to_follow;
 
 -- 1. Select ALL users that follow me and i don't follow i.e followers not yet friends
 INSERT
 	INTO
-	follow
+	to_follow
     SELECT
 	*
 FROM
@@ -29,31 +29,31 @@ WHERE
 DELETE
 --SELECT * 
 FROM
-	follow f
+	to_follow tf
 WHERE
-	f.protected = TRUE;
+	tf.protected = TRUE;
 
 -- 3. Don't follow users that I've followed before and still waiting for follow back
 DELETE
 --SELECT * 
 FROM
-	follow f
+	to_follow tf
 WHERE
-	f.twitter_id IN
+	tf.twitter_id IN
 (
 		SELECT
 			fp.twitter_id
 		FROM
-			follow_pending fp
+			followed_pending_follow_back fp
 	);
 
 -- 4. Don't follow users that I've followed before (and been unfollowed) or outside follow back period
 DELETE
 --SELECT * 
 FROM
-	follow f
+	to_follow tf
 WHERE
-	f.twitter_id IN
+	tf.twitter_id IN
 (
 		SELECT
 			fi.twitter_id
@@ -67,7 +67,7 @@ SELECT
     INTO
 	total
 FROM
-	follow;
+	to_follow;
 
 RETURN total;
 END;

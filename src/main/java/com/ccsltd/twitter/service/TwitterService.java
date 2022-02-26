@@ -23,25 +23,26 @@ import static java.lang.System.getenv;
 @Service
 public class TwitterService {
 
-    public static final String FIXED_SER = "fixed_%s.ser";
-    private static final String FOLLOW_SER = "follow_%s.ser";
-    private static final String FOLLOWED_SER = "followed_%s.ser";
-    public static final String FOLLOW_PENDING_SER = "follow_pending%s.ser";
-    public static final String FOLLOWER_SER = "follower_%s.ser";
-    public static final String FRIEND_SER = "friends_%s.ser";
-    private static final String PROCESS_CONTROL_SER = "process_control_%s.ser";
-    private static final String UNFOLLOW_SER = "unfollow_%s.ser";
-    private static final String UNFOLLOWED_SER = "unfollowed_%s.ser";
+    public static final String BACKUP_DIR = "backup/";
+    public static final String FIXED_SER = BACKUP_DIR + "fixed_%s.ser";
+    private static final String TO_FOLLOW_SER = BACKUP_DIR + "to_follow_%s.ser";
+    private static final String FOLLOWED_SER = BACKUP_DIR + "followed_%s.ser";
+    public static final String FOLLOWED_PENDING_FOLLOW_BACK_SER = BACKUP_DIR + "followed_pending_follow_back_%s.ser";
+    public static final String FOLLOWER_SER = BACKUP_DIR + "follower_%s.ser";
+    public static final String FRIEND_SER = BACKUP_DIR + "friend_%s.ser";
+    private static final String PROCESS_CONTROL_SER = BACKUP_DIR + "process_control_%s.ser";
+    private static final String TO_UNFOLLOW_SER = BACKUP_DIR + "to_unfollow_%s.ser";
+    private static final String UNFOLLOWED_SER = BACKUP_DIR + "unfollowed_%s.ser";
 
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
-    private final FollowRepository followRepository;
+    private final ToFollowRepository toFollowRepository;
     private final FollowedRepository followedRepository;
-    private final FollowPendingRepository followPendingRepository;
+    private final FollowedPendingFollowBackRepository followedPendingFollowBackRepository;
     private final FollowerRepository followerRepository;
     private final FriendRepository friendRepository;
     private final ProcessControlRepository processControlRepository;
-    private final UnfollowRepository unfollowRepository;
+    private final ToUnfollowRepository toUnfollowRepository;
     private final UnfollowedRepository unfollowedRepository;
 
     private final int SLEEP_SECONDS = 60;
@@ -291,30 +292,30 @@ public class TwitterService {
 
     public String reset(String resetTo) {
         String fixedFilename = createFilename(FIXED_SER, resetTo);
-        String followFilename = createFilename(FOLLOW_SER, resetTo);
+        String followFilename = createFilename(TO_FOLLOW_SER, resetTo);
         String followedFilename = createFilename(FOLLOWED_SER, resetTo);
-        String followPendingFilename = createFilename(FOLLOW_PENDING_SER, resetTo);
+        String followPendingFilename = createFilename(FOLLOWED_PENDING_FOLLOW_BACK_SER, resetTo);
         String followerFilename = createFilename(FOLLOWER_SER, resetTo);
         String friendFilename = createFilename(FRIEND_SER, resetTo);
         String processControlFilename = createFilename(PROCESS_CONTROL_SER, resetTo);
-        String unfollowFilename = createFilename(UNFOLLOW_SER, resetTo);
+        String unfollowFilename = createFilename(TO_UNFOLLOW_SER, resetTo);
         String unfollowedFilename = createFilename(UNFOLLOWED_SER, resetTo);
 
         List<Fixed> fixedList = deserializeList(fixedFilename);
         fixedRepository.deleteAll();
         fixedRepository.saveAll(fixedList);
 
-        List<Follow> followList = deserializeList(followFilename);
-        followRepository.deleteAll();
-        followRepository.saveAll(followList);
+        List<ToFollow> toFollowList = deserializeList(followFilename);
+        toFollowRepository.deleteAll();
+        toFollowRepository.saveAll(toFollowList);
 
         List<Followed> followedList = deserializeList(followedFilename);
         followedRepository.deleteAll();
         followedRepository.saveAll(followedList);
 
-        List<FollowPending> followPendingList = deserializeList(followPendingFilename);
-        followPendingRepository.deleteAll();
-        followPendingRepository.saveAll(followPendingList);
+        List<FollowedPendingFollowBack> followedPendingFollowBackList = deserializeList(followPendingFilename);
+        followedPendingFollowBackRepository.deleteAll();
+        followedPendingFollowBackRepository.saveAll(followedPendingFollowBackList);
 
         List<Follower> followerList = deserializeList(followerFilename);
         followerRepository.deleteAll();
@@ -328,13 +329,13 @@ public class TwitterService {
         processControlRepository.deleteAll();
         processControlRepository.saveAll(processControlList);
 
-        List<Unfollow> unfollowList = deserializeList(unfollowFilename);
-        unfollowRepository.deleteAll();
-        unfollowRepository.saveAll(unfollowList);
+        List<ToUnfollow> unfollowList = deserializeList(unfollowFilename);
+        toUnfollowRepository.deleteAll();
+        toUnfollowRepository.saveAll(unfollowList);
 
-        List<Unfollowed> unfollowedList = deserializeList(unfollowedFilename);
+        List<UnFollowed> unFollowedList = deserializeList(unfollowedFilename);
         unfollowedRepository.deleteAll();
-        unfollowedRepository.saveAll(unfollowedList);
+        unfollowedRepository.saveAll(unFollowedList);
 
         //@formatter:off
         //@formatter:off
@@ -349,14 +350,14 @@ public class TwitterService {
                         "'%s' Unfollow deserialized from '%s'"+
                 "'%s' Unfollowed deserialized from '%s'",
                 fixedList.size(), fixedFilename,
-                followList.size(), followFilename,
+                toFollowList.size(), followFilename,
                 followedList.size(), followedFilename,
-                followPendingList.size(), followPendingFilename,
+                followedPendingFollowBackList.size(), followPendingFilename,
                 followerList.size(), followerFilename,
                 friendList.size(), friendFilename,
                 processControlList.size(), processControlFilename,
                 unfollowList.size(), unfollowFilename,
-                unfollowedList.size(), unfollowedFilename);
+                unFollowedList.size(), unfollowedFilename);
         //@formatter:on
 
         log.info(logMessage);
@@ -380,26 +381,26 @@ public class TwitterService {
         }
 
         fixedFilename = createFilename(FIXED_SER, snapshotTo);
-        followFilename = createFilename(FOLLOW_SER, snapshotTo);
+        followFilename = createFilename(TO_FOLLOW_SER, snapshotTo);
         followedFilename = createFilename(FOLLOWED_SER, snapshotTo);
-        followPendingFilename = createFilename(FOLLOW_PENDING_SER, snapshotTo);
+        followPendingFilename = createFilename(FOLLOWED_PENDING_FOLLOW_BACK_SER, snapshotTo);
         followerFilename = createFilename(FOLLOWER_SER, snapshotTo);
         friendFilename = createFilename(FRIEND_SER, snapshotTo);
         processControlFilename = createFilename(PROCESS_CONTROL_SER, snapshotTo);
-        unfollowFilename = createFilename(UNFOLLOW_SER, snapshotTo);
+        unfollowFilename = createFilename(TO_UNFOLLOW_SER, snapshotTo);
         unfollowedFilename = createFilename(UNFOLLOWED_SER, snapshotTo);
 
         List<Fixed> fixedList = fixedRepository.findAll();
         serializeList(fixedList, fixedFilename, false);
 
-        List<Follow> followList = followRepository.findAll();
-        serializeList(followList, followFilename, false);
+        List<ToFollow> toFollowList = toFollowRepository.findAll();
+        serializeList(toFollowList, followFilename, false);
 
         List<Followed> followedList = followedRepository.findAll();
         serializeList(followedList, followedFilename, false);
 
-        List<FollowPending> followPendingList = followPendingRepository.findAll();
-        serializeList(followPendingList, followPendingFilename, false);
+        List<FollowedPendingFollowBack> followedPendingFollowBackList = followedPendingFollowBackRepository.findAll();
+        serializeList(followedPendingFollowBackList, followPendingFilename, false);
 
         List<Follower> followerList = followerRepository.findAll();
         serializeList(followerList, followerFilename, false);
@@ -410,11 +411,11 @@ public class TwitterService {
         List<ProcessControl> processControlList = processControlRepository.findAll();
         serializeList(processControlList, processControlFilename, false);
 
-        List<Unfollow> unfollowList = unfollowRepository.findAll();
+        List<ToUnfollow> unfollowList = toUnfollowRepository.findAll();
         serializeList(unfollowList, unfollowFilename, false);
 
-        List<Unfollowed> unfollowedList = unfollowedRepository.findAll();
-        serializeList(unfollowedList, unfollowedFilename, false);
+        List<UnFollowed> unFollowedList = unfollowedRepository.findAll();
+        serializeList(unFollowedList, unfollowedFilename, false);
 
         //@formatter:off
         String logMessage = format(
@@ -428,14 +429,14 @@ public class TwitterService {
             "'%s' Unfollow serialized to '%s'" +
             "'%s' Unfollowed serialized to '%s'",
             fixedList.size(), fixedFilename,
-            followList.size(), followFilename,
+            toFollowList.size(), followFilename,
             followedList.size(), followedFilename,
-            followPendingList.size(), followPendingFilename,
+            followedPendingFollowBackList.size(), followPendingFilename,
             followerList.size(), followerFilename,
             friendList.size(), friendFilename,
             processControlList.size(), processControlFilename,
             unfollowList.size(), unfollowFilename,
-            unfollowedList.size(), unfollowedFilename);
+            unFollowedList.size(), unfollowedFilename);
         //@formatter:on
 
         log.info(logMessage);
@@ -489,7 +490,7 @@ public class TwitterService {
     }
 
     private boolean checkSafeToUnfollow() {
-        return followRepository.findAll().size() == 0;
+        return toFollowRepository.findAll().size() == 0;
     }
 
     private String createFilename(String filenameFormat, String resetTo) {

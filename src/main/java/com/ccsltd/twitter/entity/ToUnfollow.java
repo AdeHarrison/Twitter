@@ -21,7 +21,7 @@ import java.io.Serializable;
 @Data
 @Builder
 @Entity
-public class Unfollow implements Serializable {
+public class ToUnfollow implements Serializable {
 
     @Id
     private Long twitterId;

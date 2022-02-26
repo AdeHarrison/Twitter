@@ -1,12 +1,12 @@
 package com.ccsltd.twitter.service;
 
-import com.ccsltd.twitter.entity.Follow;
 import com.ccsltd.twitter.entity.Followed;
-import com.ccsltd.twitter.entity.FollowPending;
+import com.ccsltd.twitter.entity.FollowedPendingFollowBack;
+import com.ccsltd.twitter.entity.ToFollow;
+import com.ccsltd.twitter.repository.FollowedPendingFollowBackRepository;
 import com.ccsltd.twitter.repository.FollowedRepository;
-import com.ccsltd.twitter.repository.FollowPendingRepository;
-import com.ccsltd.twitter.repository.FollowRepository;
 import com.ccsltd.twitter.repository.FollowerRepository;
+import com.ccsltd.twitter.repository.ToFollowRepository;
 import com.ccsltd.twitter.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +35,8 @@ public class FollowService {
 
     private final Twitter twitter;
     private final FollowerRepository followerRepository;
-    private final FollowRepository followRepository;
-    private final FollowPendingRepository followPendingRepository;
+    private final ToFollowRepository toFollowRepository;
+    private final FollowedPendingFollowBackRepository followedPendingFollowBackRepository;
     private final FollowedRepository followedRepository;
     private final EntityManager manager;
     private final Utils utils;
@@ -52,19 +52,19 @@ public class FollowService {
 
     @Transactional
     public int follow(int followLimit) {
-        List<Follow> allFollowList = followRepository.findAll();
-        int maxToFollow = allFollowList.size();
+        List<ToFollow> allToFollowList = toFollowRepository.findAll();
+        int maxToFollow = allToFollowList.size();
         int actualToFollow = (maxToFollow >= followLimit ? followLimit : maxToFollow);
 
-        List<Follow> followList = allFollowList.subList(0, actualToFollow);
+        List<ToFollow> toFollowList = allToFollowList.subList(0, actualToFollow);
 
-        Consumer<Follow> createFriendship = user -> {
+        Consumer<ToFollow> createFriendship = user -> {
             String screenName = user.getScreenName();
 
             try {
                 twitter.createFriendship(screenName);
                 followedRepository.save(new Followed(user.getTwitterId(), screenName));
-                followRepository.deleteByScreenName(screenName);
+                toFollowRepository.deleteByScreenName(screenName);
                 sleepForSeconds(1);
                 log.info("followed '{}'", screenName);
                 return;
@@ -78,13 +78,13 @@ public class FollowService {
 
                     case USER_NOT_FOUND:
                         followerRepository.deleteByScreenName(screenName);
-                        followRepository.deleteByScreenName(screenName);
+                        toFollowRepository.deleteByScreenName(screenName);
                         followedRepository.deleteByScreenName(screenName);
                         log.info("User doesn't exist '{}'", screenName);
                         return;
 
                     case FOLLOW_ALREADY_REQUESTED:
-                        Optional<FollowPending> followPending = followPendingRepository.findByTwitterId(
+                        Optional<FollowedPendingFollowBack> followPending = followedPendingFollowBackRepository.findByTwitterId(
                                 user.getTwitterId());
 
                         if (followPending.isPresent()) {
@@ -101,11 +101,11 @@ public class FollowService {
                                         screenName, createdDate);
                             }
                         } else {
-                            followPendingRepository.save(new FollowPending(user.getTwitterId(), screenName));
+                            followedPendingFollowBackRepository.save(new FollowedPendingFollowBack(user.getTwitterId(), screenName));
                             log.info("Already requested to follow '{}' and created new tracking record", screenName);
                         }
 
-                        followRepository.deleteByScreenName(screenName);
+                        toFollowRepository.deleteByScreenName(screenName);
 
                         return;
 
@@ -121,9 +121,9 @@ public class FollowService {
             }
         };
 
-        followList.forEach(createFriendship);
+        toFollowList.forEach(createFriendship);
 
-        return followRepository.findAll().size();
+        return toFollowRepository.findAll().size();
     }
 }
 

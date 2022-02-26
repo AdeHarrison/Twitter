@@ -1,9 +1,9 @@
 package com.ccsltd.twitter.service;
 
-import com.ccsltd.twitter.entity.Unfollow;
-import com.ccsltd.twitter.entity.Unfollowed;
+import com.ccsltd.twitter.entity.ToUnfollow;
+import com.ccsltd.twitter.entity.UnFollowed;
 import com.ccsltd.twitter.repository.FriendRepository;
-import com.ccsltd.twitter.repository.UnfollowRepository;
+import com.ccsltd.twitter.repository.ToUnfollowRepository;
 import com.ccsltd.twitter.repository.UnfollowedRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class UnfollowService {
 
     private final Twitter twitter;
     private final FriendRepository friendRepository;
-    private final UnfollowRepository unfollowRepository;
+    private final ToUnfollowRepository toUnfollowRepository;
     private final UnfollowedRepository unfollowedRepository;
     private final EntityManager manager;
 
@@ -46,20 +46,20 @@ public class UnfollowService {
 
     @Transactional
     public int unfollow(int unFollowLimit) {
-        List<Unfollow> allToUnfollow = unfollowRepository.findAll();
+        List<ToUnfollow> allToUnfollow = toUnfollowRepository.findAll();
         int maxToUnfollow = allToUnfollow.size();
         int actualToUnfollow = (maxToUnfollow >= unFollowLimit ? unFollowLimit : maxToUnfollow);
 
-        List<Unfollow> unFollowList = allToUnfollow.subList(0, actualToUnfollow);
+        List<ToUnfollow> unFollowList = allToUnfollow.subList(0, actualToUnfollow);
 
-        Consumer<Unfollow> unfollowFriend = user -> {
+        Consumer<ToUnfollow> unfollowFriend = user -> {
             String screenName = user.getScreenName();
 
             try {
                 twitter.destroyFriendship(screenName);
-                unfollowedRepository.save(new Unfollowed(user.getTwitterId(), screenName));
+                unfollowedRepository.save(new UnFollowed(user.getTwitterId(), screenName));
                 friendRepository.deleteByScreenName(screenName);
-                unfollowRepository.deleteByScreenName(screenName);
+                toUnfollowRepository.deleteByScreenName(screenName);
                 log.info("unfollowed '{}' ", screenName);
                 sleepForSeconds(1);
                 return;
@@ -72,7 +72,7 @@ public class UnfollowService {
                         return;
 
                     case RESOURCE_NOT_FOUND:
-                        unfollowRepository.deleteByScreenName(screenName);
+                        toUnfollowRepository.deleteByScreenName(screenName);
                         friendRepository.deleteByScreenName(screenName);
                         return;
 
@@ -85,7 +85,7 @@ public class UnfollowService {
 
         unFollowList.forEach(unfollowFriend);
 
-        return unfollowRepository.findAll().size();
+        return toUnfollowRepository.findAll().size();
     }
 }
 

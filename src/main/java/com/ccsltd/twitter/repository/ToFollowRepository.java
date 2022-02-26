@@ -1,11 +1,10 @@
 package com.ccsltd.twitter.repository;
 
+import com.ccsltd.twitter.entity.ToFollow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.ccsltd.twitter.entity.Unfollow;
-
 @Repository
-public interface UnfollowRepository extends JpaRepository<Unfollow, Long> {
+public interface ToFollowRepository extends JpaRepository<ToFollow, Long> {
     void deleteByScreenName(String screenName);
 }

@@ -1,23 +1,21 @@
 package com.ccsltd.twitter.entity;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-
-import org.hibernate.annotations.CreationTimestamp;
-
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @Entity
-public class Unfollowed implements Serializable {
+public class UnFollowed implements Serializable {
 
-    public Unfollowed(Long twitterId, String screenName) {
+    public UnFollowed(Long twitterId, String screenName) {
         this.twitterId = twitterId;
         this.screenName = screenName;
     }
