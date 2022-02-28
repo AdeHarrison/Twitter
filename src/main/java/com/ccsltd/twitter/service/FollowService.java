@@ -111,7 +111,7 @@ public class FollowService {
 
                     case RATE_LIMIT_REACHED:
                         log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        sleepForSeconds(5);
+                        sleepForSeconds(20);
                         return;
 
                     default:
