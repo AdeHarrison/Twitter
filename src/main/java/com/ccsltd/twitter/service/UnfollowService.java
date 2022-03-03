@@ -3,6 +3,7 @@ package com.ccsltd.twitter.service;
 import com.ccsltd.twitter.entity.ToUnfollow;
 import com.ccsltd.twitter.entity.UnFollowed;
 import com.ccsltd.twitter.repository.FriendRepository;
+import com.ccsltd.twitter.repository.ToFollowRepository;
 import com.ccsltd.twitter.repository.ToUnfollowRepository;
 import com.ccsltd.twitter.repository.UnfollowedRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
 import javax.transaction.Transactional;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static com.ccsltd.twitter.service.Constant.INVALID_TOKEN;
@@ -31,6 +33,7 @@ public class UnfollowService {
     private final FriendRepository friendRepository;
     private final ToUnfollowRepository toUnfollowRepository;
     private final UnfollowedRepository unfollowedRepository;
+    private final ToFollowRepository toFollowRepository;
     private final EntityManager manager;
 
     private final int SLEEP_SECONDS = 60;
@@ -49,8 +52,10 @@ public class UnfollowService {
         List<ToUnfollow> allToUnfollow = toUnfollowRepository.findAll();
         int maxToUnfollow = allToUnfollow.size();
         int actualToUnfollow = (maxToUnfollow >= unFollowLimit ? unFollowLimit : maxToUnfollow);
+        AtomicInteger unfollowedCount = new AtomicInteger(0);
+        List<ToUnfollow> toUnfollowList = allToUnfollow.subList(0, actualToUnfollow);
 
-        List<ToUnfollow> unFollowList = allToUnfollow.subList(0, actualToUnfollow);
+        log.info("Unfollowing '{}' users", toUnfollowList.size());
 
         Consumer<ToUnfollow> unfollowFriend = user -> {
             String screenName = user.getScreenName();
@@ -60,7 +65,7 @@ public class UnfollowService {
                 unfollowedRepository.save(new UnFollowed(user.getTwitterId(), screenName));
                 friendRepository.deleteByScreenName(screenName);
                 toUnfollowRepository.deleteByScreenName(screenName);
-                log.info("unfollowed '{}' ", screenName);
+                log.info("No '{}' - unfollowed '{}' ", unfollowedCount.incrementAndGet(), screenName);
                 sleepForSeconds(1);
                 return;
             } catch (TwitterException te) {
@@ -72,8 +77,10 @@ public class UnfollowService {
                         return;
 
                     case RESOURCE_NOT_FOUND:
-                        toUnfollowRepository.deleteByScreenName(screenName);
                         friendRepository.deleteByScreenName(screenName);
+                        toUnfollowRepository.deleteByScreenName(screenName);
+                        unfollowedRepository.deleteByScreenName(screenName);
+                        log.info("User doesn't exist '{}'", screenName);
                         return;
 
                     default:
@@ -83,7 +90,7 @@ public class UnfollowService {
             }
         };
 
-        unFollowList.forEach(unfollowFriend);
+        toUnfollowList.forEach(unfollowFriend);
 
         return toUnfollowRepository.findAll().size();
     }

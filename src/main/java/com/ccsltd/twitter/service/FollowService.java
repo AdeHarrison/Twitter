@@ -21,6 +21,7 @@ import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static com.ccsltd.twitter.service.Constant.*;
@@ -55,8 +56,10 @@ public class FollowService {
         List<ToFollow> allToFollowList = toFollowRepository.findAll();
         int maxToFollow = allToFollowList.size();
         int actualToFollow = (maxToFollow >= followLimit ? followLimit : maxToFollow);
-
+        AtomicInteger followedCount = new AtomicInteger(0);
         List<ToFollow> toFollowList = allToFollowList.subList(0, actualToFollow);
+
+        log.info("Following '{}' users", toFollowList.size());
 
         Consumer<ToFollow> createFriendship = user -> {
             String screenName = user.getScreenName();
@@ -65,8 +68,8 @@ public class FollowService {
                 twitter.createFriendship(screenName);
                 followedRepository.save(new Followed(user.getTwitterId(), screenName));
                 toFollowRepository.deleteByScreenName(screenName);
+                log.info("No '{}' - followed '{}'", followedCount.incrementAndGet(), screenName);
                 sleepForSeconds(1);
-                log.info("followed '{}'", screenName);
                 return;
             } catch (TwitterException te) {
 
@@ -111,7 +114,7 @@ public class FollowService {
 
                     case RATE_LIMIT_REACHED:
                         log.info("Failed to follow '{}', Follow limit reached - try later", screenName);
-                        sleepForSeconds(20);
+                        sleepForSeconds(10);
                         return;
 
                     default:
