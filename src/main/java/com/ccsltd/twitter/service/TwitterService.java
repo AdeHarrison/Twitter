@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import twitter4j.*;
 
+import javax.transaction.Transactional;
 import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -178,6 +179,7 @@ public class TwitterService {
         return logMessage;
     }
 
+    @Transactional
     public String createNewFollowers() {
         IDs partialUsers = null;
         long nextCursor = -1;
@@ -249,6 +251,7 @@ public class TwitterService {
         return logMessage;
     }
 
+    @Transactional
     public String createNewFriends() {
         IDs partialUsers = null;
         long nextCursor = -1;
