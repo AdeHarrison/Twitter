@@ -68,7 +68,7 @@ public class TwitterService {
                 return "initialise status is not 'prepared'";
             }
 
-            List<Follower> followers = getFollowers();
+            List<Follower> followers = createAllFollowers();
             serializeList(followers, createFilename(FOLLOWER_SER, "base"), false);
 
             for (Follower follower : followers) {
@@ -81,7 +81,7 @@ public class TwitterService {
 
             sleepForSeconds(SLEEP_SECONDS);
 
-            List<Friend> friends = getFriends();
+            List<Friend> friends = createAllFriends();
             serializeList(friends, createFilename(FRIEND_SER, "base"), false);
             friendRepository.saveAll(friends);
 
@@ -93,7 +93,7 @@ public class TwitterService {
         }
     }
 
-    private List<Follower> getFollowers() {
+    private List<Follower> createAllFollowers() {
         PagableResponseList<User> partialUsers = null;
         long nextCursor = -1;
         int maxResults = 200;
@@ -130,7 +130,7 @@ public class TwitterService {
         return allUsers;
     }
 
-    private List<Friend> getFriends() {
+    private List<Friend> createAllFriends() {
         PagableResponseList<User> partialUsers = null;
         long nextCursor = -1;
         int maxResults = 200;
