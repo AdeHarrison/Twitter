@@ -33,6 +33,7 @@ public class TwitterService {
     private static final String PROCESS_CONTROL_SER = BACKUP_DIR + "process_control_%s.ser";
     private static final String TO_UNFOLLOW_SER = BACKUP_DIR + "to_unfollow_%s.ser";
     private static final String UNFOLLOWED_SER = BACKUP_DIR + "unfollowed_%s.ser";
+    public static final String LOG_SEPARATOR = "#######################################";
 
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
@@ -168,17 +169,18 @@ public class TwitterService {
     }
 
     public String refresh() {
-        int newFollowers = refreshFollowers();
-        int newFriends = refreshFriends();
+        int newFollowers = findNewFollowers();
+//        int newFriends = findNewFriends();
 
-        String logMessage = format("'%s' new Followers, '%s' new Friends", newFollowers, newFriends);
+        String logMessage = format("'%s' new Followers", newFollowers);
+//        String logMessage = format("'%s' new Followers, '%s' new Friends", newFollowers, newFriends);
 
         log.info(logMessage);
 
         return logMessage;
     }
 
-    private int refreshFollowers() {
+    private int findNewFollowers() {
         IDs partialUsers = null;
         String screenName = "ade_bald";
         long nextCursor = -1;
@@ -186,17 +188,18 @@ public class TwitterService {
         List<Long> newUsers = new ArrayList<>();
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
+        int totalFollowersProcessed = 0;
+
+        log.info(LOG_SEPARATOR);
 
         do {
             try {
                 partialUsers = twitter.getFollowersIDs(screenName, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
-                    Optional<Follower> user = followerRepository.findByTwitterId(id);
-
-                    if (!user.isPresent()) {
+                    if (isNewFollower(id, ++totalFollowersProcessed)) {
                         newUsers.add(id);
-                        log.info("Identified new follower ID '{}'", id);
+                        log.info("No '{}' - Identified new follower ID '{}'", totalFollowersProcessed, id);
                     }
                 }
             } catch (TwitterException e) {
@@ -209,24 +212,34 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
+        log.info(LOG_SEPARATOR);
+
         if (newUsers.size() > 0) {
             try {
                 long[] array = new long[newUsers.size()];
-                AtomicInteger i = new AtomicInteger(0);
+                final AtomicInteger i = new AtomicInteger(0);
 
                 newUsers.forEach(v -> array[i.getAndIncrement()] = v);
 
                 ResponseList<User> usersToAdd = twitter.lookupUsers(array);
-                usersToAdd.forEach(v -> followerRepository.save(
-                        Follower.builder().twitterId(v.getId())
-                                .screenName(v.getScreenName())
-                                .name(v.getName())
-                                .description(v.getDescription())
-                                .location(v.getLocation())
-                                .followersCount(v.getFollowersCount())
-                                .friendsCount(v.getFriendsCount())
-                                .protectedTweets(v.isProtected())
-                                .build()));
+                final AtomicInteger i2 = new AtomicInteger(0);
+
+                usersToAdd.forEach(v -> {
+                            followerRepository.save(
+                                    Follower.builder().twitterId(v.getId())
+                                            .screenName(v.getScreenName())
+                                            .name(v.getName())
+                                            .description(v.getDescription())
+                                            .location(v.getLocation())
+                                            .followersCount(v.getFollowersCount())
+                                            .friendsCount(v.getFriendsCount())
+                                            .protectedTweets(v.isProtected())
+                                            .build());
+                            log.info("No '{}' - Saved new follower screen name '{}'", i2.incrementAndGet(), v.getScreenName());
+                        }
+
+                );
+
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
@@ -235,7 +248,20 @@ public class TwitterService {
         return newUsers.size();
     }
 
-    private int refreshFriends() {
+    private boolean isNewFollower(Long id, int followerNo) {
+        Optional<Follower> user = followerRepository.findByTwitterId(id);
+        Optional<Followed> followed = followedRepository.findByTwitterId(id);
+        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
+
+        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
+            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
+            return false;
+        }
+
+        return true;
+    }
+
+    private int findNewFriends() {
         IDs partialUsers = null;
         String screenName = "ade_bald";
         long nextCursor = -1;
