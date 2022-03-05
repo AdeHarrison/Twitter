@@ -167,18 +167,18 @@ public class TwitterService {
         return allUsers;
     }
 
-    public String refresh() {
-        int newFollowers = findNewFollowers();
-        int newFriends = findNewFriends();
+    public String createNewFollowersAndFriends() {
+        String newFollowers = createNewFollowers();
+        String newFriends = createNewFriends();
 
-        String logMessage = format("'%s' new Followers, '%s' new Friends", newFollowers, newFriends);
+        String logMessage = newFollowers + ", " + newFriends;
 
         log.info(logMessage);
 
         return logMessage;
     }
 
-    private int findNewFollowers() {
+    public String createNewFollowers() {
         IDs partialUsers = null;
         long nextCursor = -1;
         int maxResults = 5000;
@@ -242,23 +242,14 @@ public class TwitterService {
             }
         }
 
-        return newUsers.size();
+        String logMessage = format("'%s' new Followers", newUsers.size());
+
+        log.info(logMessage);
+
+        return logMessage;
     }
 
-    private boolean isNewFollower(Long id, int followerNo) {
-        Optional<Follower> user = followerRepository.findByTwitterId(id);
-        Optional<Followed> followed = followedRepository.findByTwitterId(id);
-        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
-
-        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
-            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
-            return false;
-        }
-
-        return true;
-    }
-
-    private int findNewFriends() {
+    public String createNewFriends() {
         IDs partialUsers = null;
         long nextCursor = -1;
         int maxResults = 5000;
@@ -309,7 +300,11 @@ public class TwitterService {
             }
         }
 
-        return newUsers.size();
+        String logMessage = format("'%s' new Friends", newUsers.size());
+
+        log.info(logMessage);
+
+        return logMessage;
     }
 
     public String reset(String resetTo) {
@@ -463,6 +458,19 @@ public class TwitterService {
         log.info(logMessage);
 
         return logMessage;
+    }
+
+    private boolean isNewFollower(Long id, int followerNo) {
+        Optional<Follower> user = followerRepository.findByTwitterId(id);
+        Optional<Followed> followed = followedRepository.findByTwitterId(id);
+        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
+
+        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
+            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
+            return false;
+        }
+
+        return true;
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {

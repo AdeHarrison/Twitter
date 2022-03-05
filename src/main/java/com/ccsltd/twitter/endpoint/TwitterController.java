@@ -1,12 +1,10 @@
 package com.ccsltd.twitter.endpoint;
 
+import com.ccsltd.twitter.service.TwitterService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.ccsltd.twitter.service.TwitterService;
-
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
@@ -35,8 +33,18 @@ public class TwitterController {
         return twitterService.snapshot(snapshotTo);
     }
 
-    @GetMapping(path = "/refresh")
-    public String refreshData() {
-        return twitterService.refresh();
+    @GetMapping(path = "/create-new-followers-and-friends")
+    public String createNewFollowersAndFriends() {
+        return twitterService.createNewFollowersAndFriends();
+    }
+
+    @GetMapping(path = "/create-new-followers")
+    public String createNewFollowers() {
+        return twitterService.createNewFollowers();
+    }
+
+    @GetMapping(path = "/create-new-friends")
+    public String createNewFriends() {
+        return twitterService.createNewFriends();
     }
 }
