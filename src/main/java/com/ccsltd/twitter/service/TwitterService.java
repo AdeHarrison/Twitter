@@ -34,6 +34,7 @@ public class TwitterService {
     private static final String TO_UNFOLLOW_SER = BACKUP_DIR + "to_unfollow_%s.ser";
     private static final String UNFOLLOWED_SER = BACKUP_DIR + "unfollowed_%s.ser";
     public static final String LOG_SEPARATOR = "#######################################";
+    public static final String SCREEN_NAME = "ade_bald";
 
     private final Twitter twitter;
     private final FixedRepository fixedRepository;
@@ -94,7 +95,6 @@ public class TwitterService {
 
     private List<Follower> getFollowers() {
         PagableResponseList<User> partialUsers = null;
-        String screenName = "ade_bald";
         long nextCursor = -1;
         int maxResults = 200;
         List<Follower> allUsers = new ArrayList<>();
@@ -107,7 +107,7 @@ public class TwitterService {
 
         do {
             try {
-                partialUsers = twitter.getFollowersList(screenName, nextCursor, maxResults);
+                partialUsers = twitter.getFollowersList(SCREEN_NAME, nextCursor, maxResults);
 
                 partialUsers.forEach(user -> allUsers.add(createFollower(user)));
 
@@ -132,7 +132,6 @@ public class TwitterService {
 
     private List<Friend> getFriends() {
         PagableResponseList<User> partialUsers = null;
-        String screenName = "ade_bald";
         long nextCursor = -1;
         int maxResults = 200;
         List<Friend> allUsers = new ArrayList<>();
@@ -145,7 +144,7 @@ public class TwitterService {
 
         do {
             try {
-                partialUsers = twitter.getFriendsList(screenName, nextCursor, maxResults);
+                partialUsers = twitter.getFriendsList(SCREEN_NAME, nextCursor, maxResults);
 
                 partialUsers.forEach(user -> allUsers.add(createFriend(user)));
 
@@ -170,10 +169,9 @@ public class TwitterService {
 
     public String refresh() {
         int newFollowers = findNewFollowers();
-//        int newFriends = findNewFriends();
+        int newFriends = findNewFriends();
 
-        String logMessage = format("'%s' new Followers", newFollowers);
-//        String logMessage = format("'%s' new Followers, '%s' new Friends", newFollowers, newFriends);
+        String logMessage = format("'%s' new Followers, '%s' new Friends", newFollowers, newFriends);
 
         log.info(logMessage);
 
@@ -182,7 +180,6 @@ public class TwitterService {
 
     private int findNewFollowers() {
         IDs partialUsers = null;
-        String screenName = "ade_bald";
         long nextCursor = -1;
         int maxResults = 5000;
         List<Long> newUsers = new ArrayList<>();
@@ -194,7 +191,7 @@ public class TwitterService {
 
         do {
             try {
-                partialUsers = twitter.getFollowersIDs(screenName, nextCursor, maxResults);
+                partialUsers = twitter.getFollowersIDs(SCREEN_NAME, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
                     if (isNewFollower(id, ++totalFollowersProcessed)) {
@@ -214,7 +211,7 @@ public class TwitterService {
 
         log.info(LOG_SEPARATOR);
 
-        if (newUsers.size() > 0) {
+        if (!newUsers.isEmpty()) {
             try {
                 long[] array = new long[newUsers.size()];
                 final AtomicInteger i = new AtomicInteger(0);
@@ -263,7 +260,6 @@ public class TwitterService {
 
     private int findNewFriends() {
         IDs partialUsers = null;
-        String screenName = "ade_bald";
         long nextCursor = -1;
         int maxResults = 5000;
         List<Long> newUsers = new ArrayList<>();
@@ -272,7 +268,7 @@ public class TwitterService {
 
         do {
             try {
-                partialUsers = twitter.getFriendsIDs(screenName, nextCursor, maxResults);
+                partialUsers = twitter.getFriendsIDs(SCREEN_NAME, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
                     Optional<Friend> user = friendRepository.findByTwitterId(id);
@@ -288,7 +284,7 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        if (newUsers.size() > 0) {
+        if (!newUsers.isEmpty()) {
             try {
                 long[] array = new long[newUsers.size()];
                 AtomicInteger i = new AtomicInteger(0);
@@ -514,20 +510,8 @@ public class TwitterService {
         //@formatter:on
     }
 
-    private boolean checkSafeToUnfollow() {
-        return toFollowRepository.findAll().size() == 0;
-    }
-
     private String createFilename(String filenameFormat, String resetTo) {
         return format(filenameFormat, resetTo);
-    }
-
-    private String createNowFilename(String filenameFormat) {
-        Instant now = Instant.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss").withLocale(Locale.getDefault())
-                .withZone(ZoneId.systemDefault());
-
-        return createFilename(filenameFormat, formatter.format(now));
     }
 
     private void serializeList(List<?> list, String fileName, boolean append) {
