@@ -259,18 +259,26 @@ public class TwitterService {
         List<Long> newUsers = new ArrayList<>();
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
+        int totalFriendsProcessed = 0;
+
+        log.info(LOG_SEPARATOR);
 
         do {
             try {
                 partialUsers = twitter.getFriendsIDs(SCREEN_NAME, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
-                    Optional<Friend> user = friendRepository.findByTwitterId(id);
-
-                    if (!user.isPresent()) {
+                    if (isNewFriend(id, ++totalFriendsProcessed)) {
                         newUsers.add(id);
-                        log.info("Identified new friend ID '{}'", id);
+                        log.info("No '{}' - Identified new friend ID '{}'", totalFriendsProcessed, id);
                     }
+
+//                    Optional<Friend> user = friendRepository.findByTwitterId(id);
+//
+//                    if (!user.isPresent()) {
+//                        newUsers.add(id);
+//                        log.info("Identified new friend ID '{}'", id);
+//                    }
                 }
             } catch (TwitterException e) {
                 handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
@@ -278,30 +286,32 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        if (!newUsers.isEmpty()) {
-            try {
-                long[] array = new long[newUsers.size()];
-                AtomicInteger i = new AtomicInteger(0);
+        log.info(LOG_SEPARATOR);
 
-                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
-
-                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
-
-                usersToAdd.forEach(v -> friendRepository.save(
-                        Friend.builder()
-                                .twitterId(v.getId())
-                                .screenName(v.getScreenName())
-                                .name(v.getName())
-                                .description(v.getDescription())
-                                .location(v.getLocation())
-                                .followersCount(v.getFollowersCount())
-                                .friendsCount(v.getFriendsCount())
-                                .protectedTweets((v.isProtected()))
-                                .build()));
-            } catch (TwitterException e) {
-                e.printStackTrace();
-            }
-        }
+//        if (!newUsers.isEmpty()) {
+//            try {
+//                long[] array = new long[newUsers.size()];
+//                AtomicInteger i = new AtomicInteger(0);
+//
+//                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
+//
+//                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
+//
+//                usersToAdd.forEach(v -> friendRepository.save(
+//                        Friend.builder()
+//                                .twitterId(v.getId())
+//                                .screenName(v.getScreenName())
+//                                .name(v.getName())
+//                                .description(v.getDescription())
+//                                .location(v.getLocation())
+//                                .followersCount(v.getFollowersCount())
+//                                .friendsCount(v.getFriendsCount())
+//                                .protectedTweets((v.isProtected()))
+//                                .build()));
+//            } catch (TwitterException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
         String logMessage = format("'%s' new Friends", newUsers.size());
 
@@ -474,6 +484,22 @@ public class TwitterService {
         }
 
         return true;
+    }
+
+    private boolean isNewFriend(Long id, int followerNo) {
+        return false;
+//                            Optional<Friend> user = friendRepository.findByTwitterId(id);
+//
+//        Optional<Follower> user = followerRepository.findByTwitterId(id);
+//        Optional<Followed> followed = followedRepository.findByTwitterId(id);
+//        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
+//
+//        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
+//            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
+//            return false;
+//        }
+//
+//        return true;
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
