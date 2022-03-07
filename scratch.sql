@@ -1,3 +1,11 @@
+ALTER TABLE follower DROP CONSTRAINT follower_twitter_id;
+ALTER TABLE friend  DROP CONSTRAINT friend_twitter_id;
+
+ALTER TABLE follower ADD CONSTRAINT follower_twitter_id UNIQUE (twitter_id);
+ALTER TABLE friend ADD CONSTRAINT friend_twitter_id UNIQUE (twitter_id);
+
+
+
 --DROP TABLE IF EXISTS follow CASCADE;
 --DROP TABLE IF EXISTS follower CASCADE;
 --DROP TABLE IF EXISTS friend CASCADE;
