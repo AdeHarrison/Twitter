@@ -8,7 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface UnfollowedRepository extends JpaRepository<UnFollowed, Long> {
-    Optional<UnFollowed> findByTwitterId(Long id);
-
     void deleteByScreenName(String screenName);
 }

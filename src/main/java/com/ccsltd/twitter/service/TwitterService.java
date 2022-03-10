@@ -4,6 +4,7 @@ import com.ccsltd.twitter.entity.*;
 import com.ccsltd.twitter.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import twitter4j.*;
 
@@ -53,54 +54,26 @@ public class TwitterService {
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
             .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault());
 
-    public String initialise(String status) {
+    public String initialise() {
+        processControlRepository.save(new ProcessControl(1L, "initialise", "prepared"));
 
-        if ("prepare".equals(status)) {
-            if (processControlRepository.existsById(1L)) {
-                processControlRepository.deleteById(1L);
-            }
-            processControlRepository.save(new ProcessControl(1L, "initialise", "prepared"));
-
-            return "initialise status is 'prepared' to execute";
-        } else if ("execute".equals(status)) {
-            ProcessControl currentProcess = processControlRepository.findByProcess("initialise");
-
-            if (currentProcess == null || !"prepared".equals(currentProcess.getStatus())) {
-                return "initialise status is not 'prepared'";
-            }
-
-            List<Follower> followers = createAllFollowers();
-            serializeList(followers, createFilename(FOLLOWER_SER, "base"), false);
-
-            for (Follower follower : followers) {
-                try {
-                    followerRepository.save(follower);
-                } catch (Exception cve) {
-                    log.info("Duplicate Twitter Id '{}'", follower.getTwitterId());
-                }
-            }
-
-            sleepForSeconds(SLEEP_SECONDS);
-
-            List<Friend> friends = createAllFriends();
-            serializeList(friends, createFilename(FRIEND_SER, "base"), false);
-            friendRepository.saveAll(friends);
-
-            processControlRepository.deleteById(1L);
-
-            return format("'%s' Followers created, '%s' Friends created", followers.size(), friends.size());
-        } else {
-            return format("invalid initialise status '%s'", status);
-        }
+        return "initialise status is 'prepared' to execute";
     }
 
-    private List<Follower> createAllFollowers() {
+    @Transactional
+    public String loadAllFollowers() {
+        ProcessControl currentProcess = processControlRepository.findByProcess("initialise");
+
+        if (currentProcess == null || !"prepared".equals(currentProcess.getStatus())) {
+            return "initialise status is not 'prepared'";
+        }
+
         PagableResponseList<User> partialUsers = null;
         long nextCursor = -1;
-        int maxResults = 200;
-        List<Follower> allUsers = new ArrayList<>();
-        int fakeCount = 0;
+        List<Follower> followers = new ArrayList<>();
+        int fakeCount = 1;
         boolean isDebug = "true".equals(getenv("twitter4j.debug"));
+        int maxResults = (isDebug ? 10 : 200);
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
 
@@ -110,13 +83,12 @@ public class TwitterService {
             try {
                 partialUsers = twitter.getFollowersList(SCREEN_NAME, nextCursor, maxResults);
 
-                partialUsers.forEach(user -> allUsers.add(createFollower(user)));
+                partialUsers.forEach(user -> followers.add(createFollower(user)));
 
-                log.info("Total Followers retrieved: {}", allUsers.size());
+                log.info("Total Followers retrieved: {}", followers.size());
 
                 //todo debug
                 if (isDebug) {
-                    fakeCount++;
                     if (fakeCount == 1) {
                         break;
                     }
@@ -128,16 +100,28 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        return allUsers;
+        serializeList(followers, createFilename(FOLLOWER_SER, "base"), false);
+        followerRepository.saveAll(followers);
+
+        processControlRepository.deleteById(1L);
+
+        return format("'%s' Followers created", followers.size());
     }
 
-    private List<Friend> createAllFriends() {
+    @Transactional
+    public String loadAllFriends() {
+        ProcessControl currentProcess = processControlRepository.findByProcess("initialise");
+
+        if (currentProcess == null || !"prepared".equals(currentProcess.getStatus())) {
+            return "initialise status is not 'prepared'";
+        }
+
         PagableResponseList<User> partialUsers = null;
         long nextCursor = -1;
-        int maxResults = 200;
-        List<Friend> allUsers = new ArrayList<>();
-        int fakeCount = 0;
+        List<Friend> friends = new ArrayList<>();
+        int fakeCount = 1;
         boolean isDebug = "true".equals(getenv("twitter4j.debug"));
+        int maxResults = (isDebug ? 10 : 200);
         int rateLimitCount = 1;
         int sleptForSecondsTotal = 0;
 
@@ -147,13 +131,12 @@ public class TwitterService {
             try {
                 partialUsers = twitter.getFriendsList(SCREEN_NAME, nextCursor, maxResults);
 
-                partialUsers.forEach(user -> allUsers.add(createFriend(user)));
+                partialUsers.forEach(user -> friends.add(createFriend(user)));
 
-                log.info("Total Friends retrieved: {}", allUsers.size());
+                log.info("Total Friend retrieved: {}", friends.size());
 
                 //todo debug
                 if (isDebug) {
-                    fakeCount++;
                     if (fakeCount == 1) {
                         break;
                     }
@@ -165,7 +148,12 @@ public class TwitterService {
             }
         } while ((nextCursor = partialUsers.getNextCursor()) != 0);
 
-        return allUsers;
+        serializeList(friends, createFilename(FRIEND_SER, "base"), false);
+        friendRepository.saveAll(friends);
+
+        processControlRepository.deleteById(1L);
+
+        return format("'%s' Friends created", friends.size());
     }
 
     public String createNewFollowersAndFriends() {
@@ -196,9 +184,9 @@ public class TwitterService {
                 partialUsers = twitter.getFollowersIDs(SCREEN_NAME, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
-                    if (isNewFollower(id, ++totalFollowersProcessed)) {
+                    if (isNewFollower(id)) {
                         newUsers.add(id);
-                        log.info("No '{}' - Identified new follower ID '{}'", totalFollowersProcessed, id);
+                        log.info("No '{}' - Identified new follower ID '{}'", ++totalFollowersProcessed, id);
                     }
                 }
             } catch (TwitterException e) {
@@ -225,7 +213,7 @@ public class TwitterService {
 
                 usersToAdd.forEach(v -> {
                             followerRepository.save(
-                                    Follower.builder().twitterId(v.getId())
+                                    Follower.builder().id(v.getId())
                                             .screenName(v.getScreenName())
                                             .name(v.getName())
                                             .description(v.getDescription())
@@ -268,12 +256,12 @@ public class TwitterService {
                 partialUsers = twitter.getFriendsIDs(SCREEN_NAME, nextCursor, maxResults);
 
                 for (Long id : partialUsers.getIDs()) {
-                    if (isNewFriend(id, ++totalFriendsProcessed)) {
+                    if (isNewFriend(id)) {
                         newUsers.add(id);
-                        log.info("No '{}' - Identified new friend ID '{}'", totalFriendsProcessed, id);
+                        log.info("No '{}' - Identified new friend ID '{}'", ++totalFriendsProcessed, id);
                     }
 
-//                    Optional<Friend> user = friendRepository.findByTwitterId(id);
+//                    Optional<Friend> user = friendRepository.findById(id);
 //
 //                    if (!user.isPresent()) {
 //                        newUsers.add(id);
@@ -473,33 +461,16 @@ public class TwitterService {
         return logMessage;
     }
 
-    private boolean isNewFollower(Long id, int followerNo) {
-        Optional<Follower> user = followerRepository.findByTwitterId(id);
-        Optional<Followed> followed = followedRepository.findByTwitterId(id);
-        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
+    private boolean isNewFollower(Long id) {
+        Optional<Follower> user = followerRepository.findById(id);
 
-        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
-            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
-            return false;
-        }
-
-        return true;
+        return user.isEmpty();
     }
 
-    private boolean isNewFriend(Long id, int followerNo) {
-        return false;
-//                            Optional<Friend> user = friendRepository.findByTwitterId(id);
-//
-//        Optional<Follower> user = followerRepository.findByTwitterId(id);
-//        Optional<Followed> followed = followedRepository.findByTwitterId(id);
-//        Optional<UnFollowed> unFollowed = unfollowedRepository.findByTwitterId(id);
-//
-//        if (user.isPresent() || followed.isPresent() || unFollowed.isPresent()) {
-//            log.info("No '{}' - ID '{}' EXISTS", followerNo, id);
-//            return false;
-//        }
-//
-//        return true;
+    private boolean isNewFriend(Long id) {
+        Optional<Friend> user = friendRepository.findById(id);
+
+        return user.isEmpty();
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
@@ -516,7 +487,7 @@ public class TwitterService {
     private Follower createFollower(User user) {
         //@formatter:off
         return Follower.builder()
-                .twitterId(user.getId())
+                .id(user.getId())
                 .name(user.getName())
                 .screenName(user.getScreenName())
                 .location(user.getLocation())
@@ -533,7 +504,7 @@ public class TwitterService {
     private Friend createFriend(User user) {
         //@formatter:off
         return Friend.builder()
-                .twitterId(user.getId())
+                .id(user.getId())
                 .name(user.getName())
                 .screenName(user.getScreenName())
                 .location(user.getLocation())

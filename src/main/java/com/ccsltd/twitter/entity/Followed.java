@@ -17,13 +17,13 @@ import lombok.NoArgsConstructor;
 @Entity
 public class Followed implements Serializable {
 
-    public Followed(Long twitterId, String screenName) {
-        this.twitterId = twitterId;
+    public Followed(Long id, String screenName) {
+        this.id = id;
         this.screenName = screenName;
     }
 
     @Id
-    private Long twitterId;
+    private Long id;
 
     @Column
     private String screenName;

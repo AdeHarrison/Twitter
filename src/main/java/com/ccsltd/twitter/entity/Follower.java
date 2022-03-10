@@ -23,11 +23,7 @@ import java.util.Date;
 public class Follower implements Serializable {
 
     @Id
-    @GeneratedValue
     private Long id;
-
-    @Column
-    private Long twitterId;
 
     @Column
     private String name;

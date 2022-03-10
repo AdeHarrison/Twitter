@@ -17,11 +17,7 @@ import java.time.LocalDateTime;
 public class ToFollow implements Serializable {
 
     @Id
-    @GeneratedValue
     private Long id;
-
-    @Column
-    private Long twitterId;
 
     @Column
     private String name;

@@ -184,7 +184,7 @@ class ToFollowServiceTest {
         when(toFollowRepository.findAll()).thenReturn(createFollowList(1)).thenReturn(createFollowList(0));
         when(twitter.createFriendship(anyString())).thenThrow(twitterException);
         when(twitterException.getErrorCode()).thenReturn(160);
-        when(followedPendingFollowBackRepository.findByTwitterId(anyLong())).thenReturn(followPending);
+        when(followedPendingFollowBackRepository.findById(anyLong())).thenReturn(followPending);
         when(followedPendingFollowBackRepository.save(any(FollowedPendingFollowBack.class))).thenReturn(new FollowedPendingFollowBack());
         doNothing().when(toFollowRepository).deleteByScreenName(anyString());
 
@@ -193,7 +193,7 @@ class ToFollowServiceTest {
         InOrder inOrder = inOrder(toFollowRepository, twitter, followedPendingFollowBackRepository);
         inOrder.verify(toFollowRepository).findAll();
         inOrder.verify(twitter).createFriendship(anyString());
-        inOrder.verify(followedPendingFollowBackRepository).findByTwitterId(anyLong());
+        inOrder.verify(followedPendingFollowBackRepository).findById(anyLong());
         inOrder.verify(followedPendingFollowBackRepository).save(any(FollowedPendingFollowBack.class));
         inOrder.verify(toFollowRepository).deleteByScreenName(anyString());
         inOrder.verify(toFollowRepository).findAll();
@@ -212,7 +212,7 @@ class ToFollowServiceTest {
         when(toFollowRepository.findAll()).thenReturn(createFollowList(1)).thenReturn(createFollowList(0));
         when(twitter.createFriendship(anyString())).thenThrow(twitterException);
         when(twitterException.getErrorCode()).thenReturn(160);
-        when(followedPendingFollowBackRepository.findByTwitterId(anyLong())).thenReturn(Optional.of(valid));
+        when(followedPendingFollowBackRepository.findById(anyLong())).thenReturn(Optional.of(valid));
         doNothing().when(toFollowRepository).deleteByScreenName(anyString());
 
         int actual = underTest.follow(1);
@@ -220,7 +220,7 @@ class ToFollowServiceTest {
         InOrder inOrder = inOrder(toFollowRepository, twitter, followedPendingFollowBackRepository);
         inOrder.verify(toFollowRepository).findAll();
         inOrder.verify(twitter).createFriendship(anyString());
-        inOrder.verify(followedPendingFollowBackRepository).findByTwitterId(anyLong());
+        inOrder.verify(followedPendingFollowBackRepository).findById(anyLong());
         inOrder.verify(toFollowRepository).deleteByScreenName(anyString());
         inOrder.verify(toFollowRepository).findAll();
 
@@ -238,7 +238,7 @@ class ToFollowServiceTest {
         when(toFollowRepository.findAll()).thenReturn(createFollowList(1)).thenReturn(createFollowList(0));
         when(twitter.createFriendship(anyString())).thenThrow(twitterException);
         when(twitterException.getErrorCode()).thenReturn(160);
-        when(followedPendingFollowBackRepository.findByTwitterId(anyLong())).thenReturn(Optional.of(expired));
+        when(followedPendingFollowBackRepository.findById(anyLong())).thenReturn(Optional.of(expired));
         doNothing().when(toFollowRepository).deleteByScreenName(anyString());
 
         int actual = underTest.follow(1);
@@ -246,7 +246,7 @@ class ToFollowServiceTest {
         InOrder inOrder = inOrder(toFollowRepository, twitter, followedPendingFollowBackRepository, followedRepository);
         inOrder.verify(toFollowRepository).findAll();
         inOrder.verify(twitter).createFriendship(anyString());
-        inOrder.verify(followedPendingFollowBackRepository).findByTwitterId(anyLong());
+        inOrder.verify(followedPendingFollowBackRepository).findById(anyLong());
         inOrder.verify(followedRepository).save(any(Followed.class));
         inOrder.verify(toFollowRepository).deleteByScreenName(anyString());
         inOrder.verify(toFollowRepository).findAll();

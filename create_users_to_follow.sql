@@ -6,6 +6,9 @@ DECLARE
 
 BEGIN
 
+--	Create followed from friends
+-- INSERT INTO followed SELECT	fr.id, fr.screen_name FROM friend fr;
+	
 DELETE
 FROM
 	to_follow;
@@ -19,9 +22,9 @@ INSERT
 FROM
 	follower fo
 WHERE
-	fo.twitter_id NOT IN (
+	fo.id NOT IN (
 	SELECT
-		fr.twitter_id
+		fr.id
 	FROM
 		friend fr);
 
@@ -39,10 +42,10 @@ DELETE
 FROM
 	to_follow tf
 WHERE
-	tf.twitter_id IN
+	tf.id IN
 (
 		SELECT
-			fp.twitter_id
+			fp.id
 		FROM
 			followed_pending_follow_back fp
 	);
@@ -53,10 +56,10 @@ DELETE
 FROM
 	to_follow tf
 WHERE
-	tf.twitter_id IN
+	tf.id IN
 (
 		SELECT
-			fi.twitter_id
+			fi.id
 		FROM
 			followed fi
 	);

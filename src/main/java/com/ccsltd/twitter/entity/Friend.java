@@ -20,11 +20,7 @@ import java.time.LocalDateTime;
 public class Friend implements Serializable {
 
     @Id
-    @GeneratedValue
     private Long id;
-
-    @Column
-    private Long twitterId;
 
     @Column
     private String name;

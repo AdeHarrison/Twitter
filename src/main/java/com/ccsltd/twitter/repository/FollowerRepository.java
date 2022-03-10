@@ -9,7 +9,5 @@ import com.ccsltd.twitter.entity.Follower;
 
 @Repository
 public interface FollowerRepository extends JpaRepository<Follower, Long> {
-    Optional<Follower> findByTwitterId(Long id);
-
     void deleteByScreenName(String screenName);
 }

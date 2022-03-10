@@ -14,7 +14,6 @@ import java.io.Serializable;
 public class Fixed implements Serializable {
 
     @Id
-    @GeneratedValue
     private Long id;
 
     @Column(unique = true)

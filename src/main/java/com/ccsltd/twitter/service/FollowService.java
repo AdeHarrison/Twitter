@@ -66,7 +66,7 @@ public class FollowService {
 
             try {
                 twitter.createFriendship(screenName);
-                followedRepository.save(new Followed(user.getTwitterId(), screenName));
+                followedRepository.save(new Followed(user.getId(), screenName));
                 toFollowRepository.deleteByScreenName(screenName);
                 log.info("No '{}' - followed '{}'", followedCount.incrementAndGet(), screenName);
                 sleepForSeconds(1);
@@ -87,15 +87,15 @@ public class FollowService {
                         return;
 
                     case FOLLOW_ALREADY_REQUESTED:
-                        Optional<FollowedPendingFollowBack> followPending = followedPendingFollowBackRepository.findByTwitterId(
-                                user.getTwitterId());
+                        Optional<FollowedPendingFollowBack> followPending = followedPendingFollowBackRepository.findById(
+                                user.getId());
 
                         if (followPending.isPresent()) {
                             LocalDateTime createdDate = followPending.get().getTimeStamp();
                             LocalDateTime cutOffDate = LocalDateTime.now().minusDays(EXPIRY_DAYS);
 
                             if (createdDate.isBefore(cutOffDate)) {
-                                followedRepository.save(new Followed(user.getTwitterId(), screenName));
+                                followedRepository.save(new Followed(user.getId(), screenName));
 
                                 log.info("Already requested to follow '{}' and request date '{}' has expired", screenName,
                                         createdDate);
@@ -104,7 +104,7 @@ public class FollowService {
                                         screenName, createdDate);
                             }
                         } else {
-                            followedPendingFollowBackRepository.save(new FollowedPendingFollowBack(user.getTwitterId(), screenName));
+                            followedPendingFollowBackRepository.save(new FollowedPendingFollowBack(user.getId(), screenName));
                             log.info("Already requested to follow '{}' and created new tracking record", screenName);
                         }
 

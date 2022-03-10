@@ -8,5 +8,4 @@ import java.util.Optional;
 
 @Repository
 public interface FollowedPendingFollowBackRepository extends JpaRepository<FollowedPendingFollowBack, Long> {
-    Optional<FollowedPendingFollowBack> findByTwitterId(Long id);
 }

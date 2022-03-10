@@ -8,7 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface FollowedRepository extends JpaRepository<Followed, Long> {
-    Optional<Followed> findByTwitterId(Long id);
-
     void deleteByScreenName(String screenName);
 }

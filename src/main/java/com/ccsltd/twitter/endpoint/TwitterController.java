@@ -19,8 +19,17 @@ public class TwitterController {
     }
 
     @GetMapping(path = "/initialise")
-    public String initialiseData(@RequestParam(name = "status", required = true) String status) {
-        return twitterService.initialise(status);
+    public String initialiseData() {
+        return twitterService.initialise();
+    }
+
+    @GetMapping(path = "/load-all-followers")
+    public String loadAllFollowers() {
+        return twitterService.loadAllFollowers();
+    }
+    @GetMapping(path = "/load-all-friends")
+    public String loadAllFriends() {
+        return twitterService.loadAllFriends();
     }
 
     @GetMapping(path = "/reset")
