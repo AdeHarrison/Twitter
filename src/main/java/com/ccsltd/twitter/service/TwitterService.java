@@ -4,7 +4,6 @@ import com.ccsltd.twitter.entity.*;
 import com.ccsltd.twitter.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import twitter4j.*;
 
@@ -14,7 +13,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
@@ -462,15 +464,11 @@ public class TwitterService {
     }
 
     private boolean isNewFollower(Long id) {
-        Optional<Follower> user = followerRepository.findById(id);
-
-        return user.isEmpty();
+        return followerRepository.findById(id).isEmpty();
     }
 
     private boolean isNewFriend(Long id) {
-        Optional<Friend> user = friendRepository.findById(id);
-
-        return user.isEmpty();
+        return friendRepository.findById(id).isEmpty();
     }
 
     private void handleRateLimitBreach(int rateLimitCount, int sleptForSecondsTotal) {
