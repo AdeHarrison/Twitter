@@ -224,11 +224,9 @@ public class TwitterService {
                                             .friendsCount(v.getFriendsCount())
                                             .protectedTweets(v.isProtected())
                                             .build());
-                            log.info("No '{}' - Saved new follower screen name '{}'", i2.incrementAndGet(), v.getScreenName());
+                            log.info("No '{}' - Saved new follower with screen name '{}'", i2.incrementAndGet(), v.getScreenName());
                         }
-
                 );
-
             } catch (TwitterException e) {
                 e.printStackTrace();
             }
@@ -262,13 +260,6 @@ public class TwitterService {
                         newUsers.add(id);
                         log.info("No '{}' - Identified new friend ID '{}'", ++totalFriendsProcessed, id);
                     }
-
-//                    Optional<Friend> user = friendRepository.findById(id);
-//
-//                    if (!user.isPresent()) {
-//                        newUsers.add(id);
-//                        log.info("Identified new friend ID '{}'", id);
-//                    }
                 }
             } catch (TwitterException e) {
                 handleRateLimitBreach(rateLimitCount++, sleptForSecondsTotal);
@@ -278,30 +269,37 @@ public class TwitterService {
 
         log.info(LOG_SEPARATOR);
 
-//        if (!newUsers.isEmpty()) {
-//            try {
-//                long[] array = new long[newUsers.size()];
-//                AtomicInteger i = new AtomicInteger(0);
-//
-//                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
-//
-//                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
-//
-//                usersToAdd.forEach(v -> friendRepository.save(
-//                        Friend.builder()
-//                                .twitterId(v.getId())
-//                                .screenName(v.getScreenName())
-//                                .name(v.getName())
-//                                .description(v.getDescription())
-//                                .location(v.getLocation())
-//                                .followersCount(v.getFollowersCount())
-//                                .friendsCount(v.getFriendsCount())
-//                                .protectedTweets((v.isProtected()))
-//                                .build()));
-//            } catch (TwitterException e) {
-//                e.printStackTrace();
-//            }
-//        }
+        if (!newUsers.isEmpty()) {
+            try {
+                //todo bug here when >100 new friends - use
+                //newUsers = newUsers.subList(0, 99);
+
+                long[] array = new long[newUsers.size()];
+                AtomicInteger i = new AtomicInteger(0);
+
+                newUsers.forEach(v -> array[i.getAndIncrement()] = v);
+
+                ResponseList<User> usersToAdd = twitter.lookupUsers(array);
+                final AtomicInteger i2 = new AtomicInteger(0);
+
+                usersToAdd.forEach(v -> {
+                    friendRepository.save(
+                                    Friend.builder().id(v.getId())
+                                            .screenName(v.getScreenName())
+                                            .name(v.getName())
+                                            .description(v.getDescription())
+                                            .location(v.getLocation())
+                                            .followersCount(v.getFollowersCount())
+                                            .friendsCount(v.getFriendsCount())
+                                            .protectedTweets(v.isProtected())
+                                            .build());
+                            log.info("No '{}' - Saved new friend with screen name '{}'", i2.incrementAndGet(), v.getScreenName());
+                        }
+                );
+            } catch (TwitterException e) {
+                e.printStackTrace();
+            }
+        }
 
         String logMessage = format("'%s' new Friends", newUsers.size());
 

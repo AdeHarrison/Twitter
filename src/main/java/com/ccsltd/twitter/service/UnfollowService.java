@@ -62,7 +62,7 @@ public class UnfollowService {
 
             try {
                 twitter.destroyFriendship(screenName);
-                unfollowedRepository.save(new UnFollowed(user.getTwitterId(), screenName));
+                unfollowedRepository.save(new UnFollowed(user.getId(), screenName));
                 friendRepository.deleteByScreenName(screenName);
                 toUnfollowRepository.deleteByScreenName(screenName);
                 log.info("No '{}' - unfollowed '{}' ", unfollowedCount.incrementAndGet(), screenName);

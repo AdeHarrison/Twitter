@@ -24,7 +24,7 @@ import java.io.Serializable;
 public class ToUnfollow implements Serializable {
 
     @Id
-    private Long twitterId;
+    private Long id;
 
     @Column
     private String name;

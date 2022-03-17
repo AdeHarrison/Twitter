@@ -16,9 +16,6 @@ public class Fixed implements Serializable {
     @Id
     private Long id;
 
-    @Column(unique = true)
-    private Long twitterId;
-
     @Column
     private String screenName;
 

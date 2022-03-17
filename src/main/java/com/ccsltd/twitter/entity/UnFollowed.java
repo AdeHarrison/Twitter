@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 @Entity
 public class UnFollowed implements Serializable {
 
-    public UnFollowed(Long twitterId, String screenName) {
-        this.twitterId = twitterId;
+    public UnFollowed(Long id, String screenName) {
+        this.id = id;
         this.screenName = screenName;
     }
 
     @Id
-    private Long twitterId;
+    private Long id;
 
     @Column
     private String screenName;
