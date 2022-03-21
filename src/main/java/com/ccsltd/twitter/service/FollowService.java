@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static com.ccsltd.twitter.service.Constant.*;
+import static com.ccsltd.twitter.utils.Utils.sleepForMilliSeconds;
 import static com.ccsltd.twitter.utils.Utils.sleepForSeconds;
 
 @RequiredArgsConstructor
@@ -69,7 +70,7 @@ public class FollowService {
                 followedRepository.save(new Followed(user.getId(), screenName));
                 toFollowRepository.deleteByScreenName(screenName);
                 log.info("No '{}' - followed '{}'", followedCount.incrementAndGet(), screenName);
-                sleepForSeconds(1);
+                sleepForMilliSeconds(300);
                 return;
             } catch (TwitterException te) {
 

@@ -35,3 +35,4 @@ build/
 /.jpb/persistence-units.xml
 /unknown status bef reset to base/
 /follow_done/
+/logs/

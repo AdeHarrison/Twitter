@@ -38,7 +38,7 @@ WHERE
 
 -- 3. Don't follow users that I've followed before and still waiting for follow back
 DELETE
---SELECT * 
+--SELECT *
 FROM
 	to_follow tf
 WHERE

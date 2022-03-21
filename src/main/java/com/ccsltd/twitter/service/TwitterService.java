@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.ccsltd.twitter.utils.Utils.sleepForSeconds;
 import static java.lang.String.format;
 import static java.lang.System.getenv;
 
@@ -283,7 +284,7 @@ public class TwitterService {
                 final AtomicInteger i2 = new AtomicInteger(0);
 
                 usersToAdd.forEach(v -> {
-                    friendRepository.save(
+                            friendRepository.save(
                                     Friend.builder().id(v.getId())
                                             .screenName(v.getScreenName())
                                             .name(v.getName())
@@ -554,18 +555,6 @@ public class TwitterService {
         }
 
         return (T) list;
-    }
-
-    private void sleepForSeconds(int seconds) {
-        sleepForMilliSeconds(seconds * 1000);
-    }
-
-    private void sleepForMilliSeconds(int milliSeconds) {
-        try {
-            Thread.sleep(milliSeconds);
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
     }
 }
 
