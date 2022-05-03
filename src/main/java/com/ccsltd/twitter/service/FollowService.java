@@ -70,7 +70,7 @@ public class FollowService {
                 followedRepository.save(new Followed(user.getId(), screenName));
                 toFollowRepository.deleteByScreenName(screenName);
                 log.info("No '{}' - followed '{}'", followedCount.incrementAndGet(), screenName);
-                sleepForMilliSeconds(300);
+                sleepForMilliSeconds(150);
                 return;
             } catch (TwitterException te) {
 

@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 import static com.ccsltd.twitter.service.Constant.INVALID_TOKEN;
 import static com.ccsltd.twitter.service.Constant.RESOURCE_NOT_FOUND;
-import static com.ccsltd.twitter.utils.Utils.sleepForSeconds;
+import static com.ccsltd.twitter.utils.Utils.sleepForMilliSeconds;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -66,7 +66,7 @@ public class UnfollowService {
                 friendRepository.deleteByScreenName(screenName);
                 toUnfollowRepository.deleteByScreenName(screenName);
                 log.info("No '{}' - unfollowed '{}' ", unfollowedCount.incrementAndGet(), screenName);
-                sleepForSeconds(1);
+                sleepForMilliSeconds(150);
                 return;
             } catch (TwitterException te) {
 

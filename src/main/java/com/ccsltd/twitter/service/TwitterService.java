@@ -273,7 +273,7 @@ public class TwitterService {
         if (!newUsers.isEmpty()) {
             try {
                 //todo bug here when >100 new friends - use
-                //newUsers = newUsers.subList(0, 99);
+//                newUsers = newUsers.subList(0, 99);
 
                 long[] array = new long[newUsers.size()];
                 AtomicInteger i = new AtomicInteger(0);
@@ -365,7 +365,7 @@ public class TwitterService {
                         "'%s' Follower deserialized from '%s', " +
                         "'%s' Friend deserialized from '%s', " +
                         "'%s' Process Control deserialized from '%s', " +
-                        "'%s' Unfollow deserialized from '%s'"+
+                        "'%s' Unfollow deserialized from '%s', " +
                 "'%s' Unfollowed deserialized from '%s'",
                 fixedList.size(), fixedFilename,
                 toFollowList.size(), toFollowFilename,
@@ -444,7 +444,7 @@ public class TwitterService {
             "'%s' Follower serialized to '%s', " +
             "'%s' Friend serialized to '%s', " +
             "'%s' Process Control serialized to '%s', " +
-            "'%s' To Unfollow serialized to '%s'" +
+            "'%s' To Unfollow serialized to '%s', " +
             "'%s' Unfollowed serialized to '%s'",
             fixedList.size(), fixedFilename,
             toFollowList.size(), toFollowFilename,

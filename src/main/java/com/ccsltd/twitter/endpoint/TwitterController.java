@@ -18,6 +18,7 @@ public class TwitterController {
         return "My Twitter Home Page";
     }
 
+    // Start - from scratch
     @GetMapping(path = "/initialise")
     public String initialiseData() {
         return twitterService.initialise();
@@ -27,10 +28,12 @@ public class TwitterController {
     public String loadAllFollowers() {
         return twitterService.loadAllFollowers();
     }
+
     @GetMapping(path = "/load-all-friends")
     public String loadAllFriends() {
         return twitterService.loadAllFriends();
     }
+    // End - from scratch
 
     @GetMapping(path = "/reset")
     public String reset(@RequestParam(name = "to") String resetTo) {
@@ -42,6 +45,7 @@ public class TwitterController {
         return twitterService.snapshot(snapshotTo);
     }
 
+    // Does both APIs below in one
     @GetMapping(path = "/create-new-followers-and-friends")
     public String createNewFollowersAndFriends() {
         return twitterService.createNewFollowersAndFriends();
